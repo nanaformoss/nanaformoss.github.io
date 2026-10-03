@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Payment Success | 粗獷主義展示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        :root { --bg-color: #f4f4f0; --border-color: #111; }
+        body {
+            background-color: var(--bg-color);
+            font-family: "Courier New", Courier, monospace, "Microsoft JhengHei";
+            color: var(--border-color);
+            -webkit-tap-highlight-color: transparent;
+            display: flex; flex-direction: column; min-height: 100vh;
+        }
+        
+        .receipt-card {
+            background: #fff; border: 4px solid var(--border-color);
+            box-shadow: 12px 12px 0px var(--border-color);
+            background-image: radial-gradient(var(--border-color) 2px, transparent 2px);
+            background-size: 20px 20px; background-position: -10px -10px;
+        }
+        .receipt-inner { background: #fff; margin: 12px; border: 2px dashed var(--border-color); }
+        
+        .brutalist-btn {
+            background: #111; color: #fff;
+            border: 4px solid var(--border-color); text-transform: uppercase;
+            font-weight: 900; letter-spacing: 0.05em;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        
+        @media (hover: hover) {
+            .brutalist-btn:hover { background: #fde047; color: #111; transform: translate(-2px, -2px); box-shadow: 4px 4px 0px var(--border-color); }
+        }
+        .brutalist-btn:active {
+            transform: translate(4px, 4px) !important;
+            box-shadow: 0px 0px 0px var(--border-color) !important;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-12 items-center justify-center">
+
+    <main class="w-full max-w-lg receipt-card mt-10 md:mt-0 opacity-0 transform translate-y-10" id="receipt">
+        <div class="receipt-inner p-6 md:p-10 flex flex-col items-center text-center">
+            
+            <div class="w-20 h-20 bg-black text-white rounded-full flex items-center justify-center mb-6">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="square" stroke-linejoin="miter" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+
+            <h1 class="text-4xl md:text-5xl font-black tracking-tighter leading-none mb-2">PAYMENT<br>COMPLETE</h1>
+            <div class="w-full border-b-4 border-black my-4"></div>
+            
+            <p class="font-bold text-lg mb-6">感謝您的打賞支持！☕</p>
+            
+            <div class="w-full text-left font-mono text-sm mb-8 space-y-2 bg-gray-100 p-4 border-2 border-black">
+                <div class="flex justify-between"><span>STATUS:</span> <span class="font-bold">PAID</span></div>
+                <div class="flex justify-between"><span>ITEM:</span> <span class="font-bold">MOD SUPPORT</span></div>
+                <div class="flex justify-between"><span>AUTH:</span> <span class="font-bold tracking-widest text-green-600">SUCCESS</span></div>
+            </div>
+
+            <!-- 使用 replace 回到首頁，避免使用者按「上一頁」回到藍新結帳畫面 -->
+            <button onclick="goBack()" class="brutalist-btn w-full block text-center py-4 text-lg">
+                ← RETURN TO PORTFOLIO
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // 載入時的收據彈出動畫
+        gsap.to("#receipt", {
+            y: 0, opacity: 1, duration: 0.8, ease: "back.out(1.2)", delay: 0.2
+        });
+
+        function goBack() {
+            // 跳回你的主頁面 (index.html)
+            window.location.replace('index.html');
+        }
+    </script>
+</body>
+</html>
