@@ -6,12 +6,15 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch: # 允許在 GitHub 網頁上手動點擊按鈕執行
 
-permissions:
-  contents: write
+# 預設不給任何權限，只在需要的 job 加上
+permissions: {}
 
 jobs:
   update-data:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,13 +27,13 @@ jobs:
       - name: Run Update Script
         env:
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
-          STEAM_ID: ${{ secrets.STEAM_ID }}
+          STEAM_ID: ${{ vars.STEAM_ID }}
         run: node update.js
 
       - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.io"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
           # 如果檔案有變動就 commit，沒變動就跳過
           git diff --quiet && git diff --staged --quiet || (git commit -m "chore: auto-update steam stats" && git push)
