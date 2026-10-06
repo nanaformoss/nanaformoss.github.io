@@ -67,8 +67,11 @@ async function fetchAndGenerateCards() {
     try {
         console.log("正在從 Steam 取得作者所有的模組清單...");
 
-        if (!API_KEY || !STEAM_ID) {
-            throw new Error("找不到 STEAM_API_KEY 或 STEAM_ID，請檢查 GitHub Secrets 設定與 yml 檔的 env 區塊！");
+        const missing = [];
+        if (!API_KEY) missing.push('STEAM_API_KEY（應放在 Secrets）');
+        if (!STEAM_ID) missing.push('STEAM_ID（應放在 Variables）');
+        if (missing.length > 0) {
+            throw new Error(`缺少設定：${missing.join('、')}。請檢查 Settings → Secrets and variables → Actions 與 yml 的 env 區塊。`);
         }
 
         // 1. 取得名下所有工作坊項目 ID
