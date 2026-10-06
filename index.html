@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Works &amp; Mods | 模組作品集</title>
 
+<script>try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t}catch(e){}</script>
 <!-- Tailwind Play CDN：官方不建議正式環境使用，且無法加 SRI（內容會變動）。長期請改成建置 CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -47,6 +48,33 @@ html.lenis { height: auto; }
   display: none; background: #ff4d4f; color: white;
   font-weight: 600; text-align: center; padding: 12px;
 }
+[hidden]{display:none!important}
+.theme-btn{padding:.375rem;border-radius:.25rem;color:#6b7280}
+.theme-btn[aria-pressed="true"]{background:#fff;color:#1f2937;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.panel{position:absolute;z-index:40;top:100%;left:0;margin-top:.25rem;min-width:12rem;max-height:16rem;overflow:auto;background:#fff;border:1px solid #d1d5db;border-radius:.5rem;padding:.5rem;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.panel label{display:flex;gap:.5rem;align-items:center;padding:.25rem .5rem;font-size:.875rem;cursor:pointer}
+html[data-theme="dark"]{--bg-color:#14151a;--text-main:#ececec;color-scheme:dark}
+html[data-theme="dark"] .bg-white{background-color:#1e2027}
+html[data-theme="dark"] .bg-white\/60{background-color:rgba(30,32,39,.6)}
+html[data-theme="dark"] .bg-gray-200{background-color:#2a2d36}
+html[data-theme="dark"] .bg-gray-200\/60{background-color:rgba(60,64,75,.6)}
+html[data-theme="dark"] .text-black{color:#fff}
+html[data-theme="dark"] .text-gray-800{color:#e5e7eb}
+html[data-theme="dark"] .text-gray-600{color:#b4b8c2}
+html[data-theme="dark"] .text-gray-500{color:#9aa0ac}
+html[data-theme="dark"] .text-gray-400{color:#7c828f}
+html[data-theme="dark"] [class*="border-gray-"]{border-color:#343845}
+html[data-theme="dark"] .hover\:bg-gray-100:hover{background-color:#2a2d36}
+html[data-theme="dark"] .theme-btn[aria-pressed="true"]{background:#3a3e4a;color:#fff}
+html[data-theme="dark"] .panel{background:#1e2027;border-color:#343845}
+html[data-theme="dark"] input{color:#ececec}
+.support-link{display:inline-block;padding:.5rem .75rem;border-radius:.5rem;font-size:.875rem;font-weight:600}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal-box{position:relative;background:#fff;color:#1a1a1a;border-radius:1rem;max-width:42rem;width:100%;max-height:90vh;overflow:auto}
+.modal-x{position:absolute;top:.5rem;right:.5rem;width:2rem;height:2rem;border-radius:9999px;background:rgba(0,0,0,.6);color:#fff;z-index:1}
+.steam-btn{display:inline-block;padding:.5rem 1rem;border-radius:.5rem;background:#1a1a1a;color:#fff;font-size:.875rem;font-weight:600}
+html[data-theme="dark"] .modal-box{background:#1e2027;color:#ececec}
+html[data-theme="dark"] .steam-btn{background:#ececec;color:#1a1a1a}
 </style>
 
 <!-- 沒開啟 JavaScript 時，直接顯示內容，不要整頁空白 -->
@@ -64,9 +92,11 @@ html.lenis { height: auto; }
   <div class="text-lg font-bold tracking-tight">Nana's Rimworld Mods</div>
   <div class="flex gap-4 items-center text-sm font-medium text-gray-600">
     <a href="#" class="text-black font-semibold">Mods</a>
+    <a id="nav-support" href="#support" class="hover:underline">☕ Support</a>
     <div class="flex gap-2 bg-gray-200/60 rounded-lg p-1">
-      <button class="p-1.5 bg-white rounded shadow-sm text-gray-800">☀</button>
-      <button class="p-1.5 hover:bg-gray-300/50 rounded text-gray-500">☾</button>
+      <button id="theme-light" class="theme-btn" aria-label="Light mode" aria-pressed="true">☀</button>
+      <button id="theme-dark" class="theme-btn" aria-label="Dark mode" aria-pressed="false">☾</button>
+      <button id="theme-auto" class="theme-btn" aria-label="Follow device" aria-pressed="false" title="跟隨裝置">🖥</button>
     </div>
   </div>
 </nav>
@@ -84,51 +114,26 @@ html.lenis { height: auto; }
     <div class="flex flex-col md:flex-row gap-3">
       <div class="relative flex-grow max-w-md">
         <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
-        <input type="text" placeholder="Search by name, description, or tag..."
+        <input id="q" type="text" placeholder="Search by name, description, or tag..."
                class="w-full bg-transparent border border-gray-300 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
       </div>
       <div class="flex gap-2">
-        <button class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">
-          ≡ Tags
-        </button>
-        <button class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">
-          ⚑ Versions
-        </button>
+        <div class="relative"><button id="btn-tags" aria-expanded="false" class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">≡ Tags</button><div id="panel-tags" class="panel" hidden></div></div>
+        <div class="relative"><button id="btn-versions" aria-expanded="false" class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">⚑ Versions</button><div id="panel-versions" class="panel" hidden></div></div>
       </div>
     </div>
-    <p class="text-xs text-gray-500 mt-6">2 of 2 mods</p>
+    <p id="count" class="text-xs text-gray-500 mt-6">2 of 2 mods</p>
   </header>
 
   <!-- 模組卡片網格 -->
   <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
     <!-- CARDS_START -->
-
-            <article class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200/75 flex flex-col hover:shadow-md transition-shadow duration-300 gsap-reveal">
-                <figure class="w-full bg-gray-900 overflow-hidden">
-                    <img src="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/" alt="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》" class="w-full aspect-video object-cover" referrerpolicy="no-referrer" loading="lazy">
-                </figure>
-                <div class="p-5 flex flex-col flex-grow">
-                    <h2 class="text-lg font-bold leading-tight mb-1">Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》</h2>
-                    <div class="flex items-center text-xs text-gray-500 mb-3 gap-1">
-                        <span class="text-gray-800 tracking-tighter">★★★★★</span>
-                        <span>👍 10 收藏 · 25 訂閱</span>
-                    </div>
-                    <p class="text-sm text-gray-600 line-clamp-3 mb-4">&quot;I sent a pawn to chop some wood for a bed, and the axe slipped, causing severe ...</p>
-
-                    <div class="mt-auto pt-4 border-t border-gray-100">
-                        <div class="flex justify-between items-center mb-4 text-xs text-gray-500">
-                            <span>2026年10月 更新</span>
-                            <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3812133334" target="_blank" rel="noopener noreferrer" class="font-semibold text-gray-800 hover:underline flex items-center gap-1">View on Steam ↗</a>
-                        </div>
-                    </div>
-                </div>
-            </article>
-            
-            <!-- CARDS_END -->
+    <!-- GitHub Actions 會在這裡自動生成所有已發布模組的卡片 -->
+    <!-- CARDS_END -->
 
     <!-- 預告卡片 2 ( Coming Soon 永遠保留在最後面 ) -->
-    <article class="bg-white/60 rounded-2xl overflow-hidden shadow-sm border border-gray-200/75 flex flex-col opacity-75">
+    <article id="coming-soon" class="bg-white/60 rounded-2xl overflow-hidden shadow-sm border border-gray-200/75 flex flex-col opacity-75">
       <figure class="w-full bg-gray-200 aspect-video flex items-center justify-center">
         <span class="text-sm font-bold text-gray-400 tracking-widest">[ CLASSIFIED ]</span>
       </figure>
@@ -150,6 +155,35 @@ html.lenis { height: auto; }
     </article>
 
   </main>
+
+  <section id="support" class="mt-16 pt-8 border-t border-gray-200/75 text-center">
+    <h2 class="text-lg font-bold mb-1">Support my work · 支持作者</h2>
+    <p class="text-sm text-gray-600 mb-4">模組皆可免費訂閱。如果喜歡，歡迎小額支持，讓我有動力繼續更新。</p>
+    <div class="flex flex-wrap justify-center gap-2">
+      <!-- 只放公開付款頁連結（https 開頭）。沒填成真實網址的按鈕會自動隱藏 -->
+      <a class="support-link" style="background:#fff3cd;color:#856404" href="你的藍新EPG結帳網址" target="_blank" rel="noopener noreferrer">🇹🇼 台灣 (信用卡・ATM)</a>
+      <a class="support-link" style="background:#f8d7da;color:#721c24" href="https://afdian.net/a/你的愛發電帳號" target="_blank" rel="noopener noreferrer">🇨🇳 大陸 (支付寶・微信)</a>
+      <a class="support-link" style="background:#d1ecf1;color:#0c5460" href="https://ko-fi.com/nanaformoss" target="_blank" rel="noopener noreferrer">🌍 國際 (PayPal・Cards)</a>
+    </div>
+  </section>
+</div>
+
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="modal-box">
+    <button id="m-close" class="modal-x" aria-label="Close">✕</button>
+    <img id="m-img" alt="" class="w-full aspect-video object-cover">
+    <div class="p-5">
+      <h2 id="m-title" class="text-xl font-bold mb-1"></h2>
+      <p id="m-meta" class="text-xs text-gray-500 mb-3"></p>
+      <div id="m-chips" class="flex flex-wrap gap-2 mb-3"></div>
+      <p id="m-desc" class="text-sm text-gray-600 mb-4" style="white-space:pre-line"></p>
+      <a id="m-steam" class="steam-btn" target="_blank" rel="noopener noreferrer">View on Steam ↗</a>
+      <div id="m-support" class="mt-4 pt-4 border-t border-gray-100" hidden>
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Support this mod</p>
+        <div id="m-support-links" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -199,6 +233,109 @@ if (window.gsap) {
   console.warn('GSAP 未載入，改為直接顯示內容');
   showAllNow();
 }
+
+// 日夜模式：Light / 跟隨裝置 / Dark（選擇會記在瀏覽器裡）
+(function () {
+  var root = document.documentElement, mq = matchMedia('(prefers-color-scheme: dark)');
+  var btns = { light: document.getElementById('theme-light'), system: document.getElementById('theme-auto'), dark: document.getElementById('theme-dark') };
+  var mode = 'system';
+  try { var s = localStorage.getItem('theme'); if (s === 'light' || s === 'dark') mode = s; } catch (e) {}
+  function apply() {
+    root.dataset.theme = mode === 'system' ? (mq.matches ? 'dark' : 'light') : mode;
+    Object.keys(btns).forEach(function (k) { btns[k].setAttribute('aria-pressed', String(k === mode)); });
+  }
+  Object.keys(btns).forEach(function (k) {
+    btns[k].onclick = function () {
+      mode = k;
+      try { if (k === 'system') localStorage.removeItem('theme'); else localStorage.setItem('theme', k); } catch (e) {}
+      apply();
+    };
+  });
+  if (mq.addEventListener) mq.addEventListener('change', apply);
+  apply();
+})();
+
+// 贊助連結：只顯示已填成真實 https 網址的按鈕；全部沒填就隱藏整個贊助區
+(function () {
+  var ok = [].slice.call(document.querySelectorAll('#support .support-link')).filter(function (a) {
+    var href = a.getAttribute('href') || '', good = /^https:\/\//i.test(href) && href.indexOf('你的') === -1;
+    if (!good) a.hidden = true;
+    return good;
+  });
+  if (!ok.length) { document.getElementById('support').hidden = true; document.getElementById('nav-support').hidden = true; }
+  window.__supportLinks = ok;
+})();
+
+// 點卡片開啟詳細內容（全部用 textContent 填入，不會執行任何外來 HTML）
+(function () {
+  var grid = document.querySelector('main'), m = document.getElementById('modal'), last = null;
+  function $(id) { return document.getElementById(id); }
+  function parse(c, k) { try { return JSON.parse(c.dataset[k] || '[]'); } catch (e) { return []; } }
+  function open(c) {
+    last = document.activeElement;
+    var src = c.dataset.img || '', img = $('m-img');
+    img.hidden = !/^https:\/\//i.test(src); img.src = img.hidden ? '' : src; img.alt = c.dataset.title || '';
+    $('m-title').textContent = c.dataset.title || '';
+    $('m-meta').textContent = c.dataset.meta || '';
+    $('m-desc').textContent = c.dataset.full || '';
+    var chips = $('m-chips'); chips.textContent = '';
+    parse(c, 'versions').concat(parse(c, 'tags')).forEach(function (t) {
+      var s = document.createElement('span');
+      s.className = 'border border-gray-300 text-gray-500 px-2.5 py-1 rounded-full text-xs font-medium';
+      s.textContent = t; chips.appendChild(s);
+    });
+    var st = $('m-steam'), url = c.dataset.url || '';
+    st.hidden = !/^https:\/\/steamcommunity\.com\//.test(url); st.href = st.hidden ? '#' : url;
+    var box = $('m-support-links'); box.textContent = '';
+    (window.__supportLinks || []).forEach(function (a) { box.appendChild(a.cloneNode(true)); });
+    $('m-support').hidden = !box.children.length;
+    m.hidden = false; document.body.style.overflow = 'hidden'; $('m-close').focus();
+  }
+  function close() { m.hidden = true; document.body.style.overflow = ''; if (last && last.focus) last.focus(); }
+  grid.addEventListener('click', function (e) { var c = e.target.closest('[data-mod-card]'); if (c && !e.target.closest('a')) open(c); });
+  grid.addEventListener('keydown', function (e) { var c = e.target.closest('[data-mod-card]'); if (c && e.target === c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(c); } });
+  $('m-close').onclick = close;
+  m.addEventListener('click', function (e) { if (e.target === m) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !m.hidden) close(); });
+})();
+
+// 搜尋、標籤、版本篩選（資料來自每張卡片的 data- 屬性，由 update.js 產生）
+(function () {
+  var cards = [].slice.call(document.querySelectorAll('[data-mod-card]'));
+  var soon = document.getElementById('coming-soon'), q = document.getElementById('q'), count = document.getElementById('count');
+  var sel = { tags: new Set(), versions: new Set() };
+  function parse(c, k) { try { return JSON.parse(c.dataset[k] || '[]'); } catch (e) { return []; } }
+  function closeAll() { document.querySelectorAll('.panel').forEach(function (p) { p.hidden = true; }); }
+  function build(key) {
+    var btn = document.getElementById('btn-' + key), panel = document.getElementById('panel-' + key), all = new Set();
+    cards.forEach(function (c) { parse(c, key).forEach(function (v) { all.add(v); }); });
+    var list = Array.from(all).sort(function (a, b) { return b.localeCompare(a, undefined, { numeric: true }); });
+    if (!list.length) { var p = document.createElement('p'); p.className = 'text-xs text-gray-500 p-2'; p.textContent = '尚無可篩選項目'; panel.appendChild(p); }
+    list.forEach(function (v) {
+      var l = document.createElement('label'), i = document.createElement('input');
+      i.type = 'checkbox';
+      i.onchange = function () { if (i.checked) sel[key].add(v); else sel[key].delete(v); run(); };
+      l.appendChild(i); l.appendChild(document.createTextNode(v)); panel.appendChild(l);
+    });
+    btn.onclick = function (e) { e.stopPropagation(); var open = panel.hidden; closeAll(); panel.hidden = !open; btn.setAttribute('aria-expanded', String(open)); };
+    panel.onclick = function (e) { e.stopPropagation(); };
+  }
+  function run() {
+    var term = q.value.trim().toLowerCase(), shown = 0;
+    cards.forEach(function (c) {
+      var ok = (!term || (c.dataset.search || '').indexOf(term) > -1)
+        && (!sel.tags.size || parse(c, 'tags').some(function (t) { return sel.tags.has(t); }))
+        && (!sel.versions.size || parse(c, 'versions').some(function (v) { return sel.versions.has(v); }));
+      c.hidden = !ok; if (ok) shown++;
+    });
+    if (soon) soon.hidden = !!(term || sel.tags.size || sel.versions.size);
+    count.textContent = shown + ' of ' + cards.length + ' mods';
+  }
+  document.addEventListener('click', closeAll);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); });
+  q.addEventListener('input', run);
+  build('tags'); build('versions'); run();
+})();
 </script>
 
 </body>
