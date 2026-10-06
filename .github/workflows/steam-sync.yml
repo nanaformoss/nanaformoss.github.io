@@ -27,7 +27,8 @@ jobs:
       - name: Run Update Script
         env:
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
-          STEAM_ID: ${{ vars.STEAM_ID }}
+          # STEAM_ID 是公開資訊：優先用 Repository Variable，沒設定時退回 Secret
+          STEAM_ID: ${{ vars.STEAM_ID || secrets.STEAM_ID }}
         run: node update.js
 
       - name: Commit and Push changes
