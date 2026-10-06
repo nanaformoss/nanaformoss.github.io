@@ -9,8 +9,19 @@ async function fetchAndGenerateCards() {
     try {
         console.log("正在從 Steam 取得作者所有的模組清單...");
         
+        // 檢查環境變數是否正確注入
+        if (!API_KEY || !STEAM_ID) {
+            throw new Error("找不到 STEAM_API_KEY 或 STEAM_ID，請檢查 GitHub Secrets 設定與 yml 檔的 env 區塊！");
+        }
+
         // 1. 取得你名下所有的工作坊項目 ID
         const listRes = await fetch(`https://api.steampowered.com/ISteamUGC/GetUserPublishedFiles/v1/?key=${API_KEY}&steamid=${STEAM_ID}&appid=${APP_ID}&page=1`);
+        
+        // 確保 API 回應是成功的，否則嘗試解析 JSON 會報錯
+        if (!listRes.ok) {
+            throw new Error(`Steam API 連線失敗 (狀態碼: ${listRes.status})`);
+        }
+        
         const listData = await listRes.json();
 
         if (!listData.response || !listData.response.publishedfiledetails) {
@@ -41,7 +52,7 @@ async function fetchAndGenerateCards() {
         
         detailsData.response.publishedfiledetails.forEach(mod => {
             const title = mod.title;
-            // 處理 Steam 描述，去除隱藏字元並截斷長度
+            // 【已修正】將 \vert{} 替換為正確的 |
             const rawDesc = mod.description || "No description available.";
             const desc = rawDesc.replace(/\[\/?(b\vert{}i\vert{}u\vert{}h1\vert{}h2\vert{}h3\vert{}url.*?)\]/g, '').substring(0, 80) + '...';
             const imgUrl = mod.preview_url;
@@ -50,8 +61,6 @@ async function fetchAndGenerateCards() {
             const favs = mod.favorited || 0;
             const dateStr = new Date(mod.time_updated * 1000).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' });
 
-            // 這裡整合了你最新的柔和現代風與三軌贊助按鈕
-            // 💡 記得將下面的 贊助網址 換成你真實的連結！
             cardsHTML += `
             <article class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200/75 flex flex-col hover:shadow-md transition-shadow duration-300 gsap-reveal">
                 <figure class="w-full bg-gray-900 overflow-hidden">
@@ -89,14 +98,24 @@ async function fetchAndGenerateCards() {
         });
 
         // 4. 將生成的卡片寫入 index.html 的標記之間
+        // 【已修正】加入防呆機制，確認檔案是否存在
+        if (!fs.existsSync('index.html')) {
+            throw new Error("找不到 index.html 檔案！請確認檔案名稱是否正確且位於專案最外層。");
+        }
+
         let html = fs.readFileSync('index.html', 'utf8');
+        
+        if (!html.includes('<!-- CARDS_START -->') || !html.includes('<!-- CARDS_END -->')) {
+            throw new Error("在 index.html 中找不到 <!-- CARDS_START --> 或 <!-- CARDS_END --> 標記，無法替換內容！");
+        }
+
         html = html.replace(/<!-- CARDS_START -->[\s\S]*<!-- CARDS_END -->/, `<!-- CARDS_START -->\n${cardsHTML}\n            <!-- CARDS_END -->`);
         fs.writeFileSync('index.html', html, 'utf8');
         
         console.log("✅ 網頁自動化更新完成！");
 
     } catch (error) {
-        console.error("❌ 更新失敗:", error);
+        console.error("❌ 更新失敗:", error.message);
         process.exit(1);
     }
 }
