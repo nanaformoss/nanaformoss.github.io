@@ -1,169 +1,184 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Works & Mods | 模組作品集</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://unpkg.com/@studio-freight/lenis@1.0.33/dist/lenis.min.js"></script>
-    
-    <!-- 引入 Google 字體以增加質感 -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <style>
-        :root { 
-            --bg-color: #f3f2ed; /* 柔和的米色背景 */
-            --text-main: #1a1a1a;
-        }
-        body {
-            background-color: var(--bg-color);
-            font-family: 'Inter', "Microsoft JhengHei", sans-serif;
-            color: var(--text-main);
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        /* 平滑滾動設定 */
-        html.lenis { height: auto; }
-        .lenis.lenis-smooth { scroll-behavior: auto; }
-        .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
-        .lenis.lenis-stopped { overflow: hidden; }
+<meta charset="UTF-8">
+<!-- 已移除 maximum-scale=1.0 與 user-scalable=no，允許使用者縮放（無障礙） -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Works &amp; Mods | 模組作品集</title>
 
-        /* GSAP 進場動畫初始狀態 */
-        .gsap-reveal { opacity: 0; transform: translateY(20px); }
+<!-- Tailwind Play CDN：官方不建議正式環境使用，且無法加 SRI（內容會變動）。長期請改成建置 CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
 
-        /* 內建瀏覽器警告 Banner */
-        #iab-warning {
-            display: none; background: #ff4d4f; color: white;
-            font-weight: 600; text-align: center; padding: 12px;
-        }
-    </style>
+<!-- GSAP：已加上 SRI 完整性驗證。若雜湊不符，瀏覽器會擋下腳本，下方程式會自動改為直接顯示內容 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"
+        integrity="sha512-16esztaSRplJROstbIIdwX3N97V1+pZvV33ABoG1H2OyTttBxEGkTsoIVsiP1iaTtM8b3+hu2kB6pQ4Clr5yug=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- Lenis：已鎖定版本 1.0.33，尚未加 SRI（需要自行取得雜湊，見說明） -->
+<script src="https://unpkg.com/@studio-freight/lenis@1.0.33/dist/lenis.min.js"></script>
+
+<!-- 引入 Google 字體以增加質感 -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-color: #f3f2ed; /* 柔和的米色背景 */
+  --text-main: #1a1a1a;
+}
+
+body {
+  background-color: var(--bg-color);
+  font-family: 'Inter', "Microsoft JhengHei", sans-serif;
+  color: var(--text-main);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 平滑滾動設定 */
+html.lenis { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* GSAP 進場動畫初始狀態 */
+.gsap-reveal { opacity: 0; transform: translateY(20px); }
+
+/* 內建瀏覽器警告 Banner */
+#iab-warning {
+  display: none; background: #ff4d4f; color: white;
+  font-weight: 600; text-align: center; padding: 12px;
+}
+</style>
+
+<!-- 沒開啟 JavaScript 時，直接顯示內容，不要整頁空白 -->
+<noscript><style>.gsap-reveal { opacity: 1; transform: none; }</style></noscript>
 </head>
 <body class="min-h-screen">
 
-    <!-- 內建瀏覽器警告 (確保金流跳轉正常) -->
-    <div id="iab-warning" class="text-sm md:text-base z-50 relative shadow-md">
-        ⚠ 系統偵測到您正在使用社群軟體內建瀏覽器。為確保贊助支付跳轉正常，請點擊右上角「以 Safari / Chrome 開啟」。
-    </div>
+<!-- 內建瀏覽器警告 (確保金流跳轉正常) -->
+<div id="iab-warning" class="text-sm md:text-base z-50 relative shadow-md">
+  ⚠ 系統偵測到您正在使用社群軟體內建瀏覽器。為確保贊助支付跳轉正常，請點擊右上角「以 Safari / Chrome 開啟」。
+</div>
 
-    <!-- 頂部導覽列 -->
-    <nav class="w-full flex justify-between items-center px-6 py-4 md:px-12 md:py-6 border-b border-gray-200/50">
-        <div class="text-lg font-bold tracking-tight">Nana's Rimworld Mods</div>
-        <div class="flex gap-4 items-center text-sm font-medium text-gray-600">
-            <a href="#" class="text-black font-semibold">Mods</a>
-            <div class="flex gap-2 bg-gray-200/60 rounded-lg p-1">
-                <button class="p-1.5 bg-white rounded shadow-sm text-gray-800">☀</button>
-                <button class="p-1.5 hover:bg-gray-300/50 rounded text-gray-500">☾</button>
-            </div>
+<!-- 頂部導覽列 -->
+<nav class="w-full flex justify-between items-center px-6 py-4 md:px-12 md:py-6 border-b border-gray-200/50">
+  <div class="text-lg font-bold tracking-tight">Nana's Rimworld Mods</div>
+  <div class="flex gap-4 items-center text-sm font-medium text-gray-600">
+    <a href="#" class="text-black font-semibold">Mods</a>
+    <div class="flex gap-2 bg-gray-200/60 rounded-lg p-1">
+      <button class="p-1.5 bg-white rounded shadow-sm text-gray-800">☀</button>
+      <button class="p-1.5 hover:bg-gray-300/50 rounded text-gray-500">☾</button>
+    </div>
+  </div>
+</nav>
+
+<div class="px-6 py-8 md:px-12 md:py-12 max-w-[1600px] mx-auto">
+
+  <!-- 標題與搜尋區塊 -->
+  <header class="mb-10 gsap-reveal">
+    <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">Nana's Rimworld Mods</h1>
+    <p class="text-gray-600 text-sm md:text-base max-w-2xl mb-8">
+      Browse mods on the Steam Workshop. 獨立遊戲模組與專案集合，感謝您的支持與贊助。
+    </p>
+
+    <!-- 模擬搜尋與篩選列 (UI展示) -->
+    <div class="flex flex-col md:flex-row gap-3">
+      <div class="relative flex-grow max-w-md">
+        <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+        <input type="text" placeholder="Search by name, description, or tag..."
+               class="w-full bg-transparent border border-gray-300 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
+      </div>
+      <div class="flex gap-2">
+        <button class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">
+          ≡ Tags
+        </button>
+        <button class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">
+          ⚑ Versions
+        </button>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 mt-6">2 of 2 mods</p>
+  </header>
+
+  <!-- 模組卡片網格 -->
+  <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+    <!-- CARDS_START -->
+    <!-- GitHub Actions 會在這裡自動生成所有已發布模組的卡片 -->
+    <!-- CARDS_END -->
+
+    <!-- 預告卡片 2 ( Coming Soon 永遠保留在最後面 ) -->
+    <article class="bg-white/60 rounded-2xl overflow-hidden shadow-sm border border-gray-200/75 flex flex-col opacity-75">
+      <figure class="w-full bg-gray-200 aspect-video flex items-center justify-center">
+        <span class="text-sm font-bold text-gray-400 tracking-widest">[ CLASSIFIED ]</span>
+      </figure>
+      <div class="p-5 flex flex-col flex-grow">
+        <h2 class="text-lg font-bold leading-tight mb-1 text-gray-500">開發中：新模組項目</h2>
+        <div class="flex items-center text-xs text-gray-400 mb-3 gap-1">
+          <span>No ratings yet</span>
         </div>
-    </nav>
+        <p class="text-sm text-gray-500 line-clamp-3 mb-4">
+          下一個獨立模組正在重構與測試中，將帶來全新的遊戲機制與 UI 改善，敬請期待。
+        </p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <span class="border border-gray-300 text-gray-500 px-2.5 py-1 rounded-full text-xs font-medium">Coming Soon</span>
+        </div>
+        <div class="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
+          <span>TBA</span>
+        </div>
+      </div>
+    </article>
 
-    <div class="px-6 py-8 md:px-12 md:py-12 max-w-[1600px] mx-auto">
-        
-        <!-- 標題與搜尋區塊 -->
-        <header class="mb-10 gsap-reveal">
-            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">Nana's Rimworld Mods</h1>
-            <p class="text-gray-600 text-sm md:text-base max-w-2xl mb-8">
-                Browse mods on the Steam Workshop. 獨立遊戲模組與專案集合，感謝您的支持與贊助。
-            </p>
-            
-            <!-- 模擬搜尋與篩選列 (UI展示) -->
-            <div class="flex flex-col md:flex-row gap-3">
-                <div class="relative flex-grow max-w-md">
-                    <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
-                    <input type="text" placeholder="Search by name, description, or tag..." 
-                           class="w-full bg-transparent border border-gray-300 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
-                </div>
-                <div class="flex gap-2">
-                    <button class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">
-                        ≡ Tags
-                    </button>
-                    <button class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">
-                        ⚑ Versions
-                    </button>
-                </div>
-            </div>
-            <p class="text-xs text-gray-500 mt-6">2 of 2 mods</p>
-        </header>
+  </main>
+</div>
 
-        <!-- 模組卡片網格 -->
-        <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            
-            <!-- CARDS_START -->
+<script>
+// 防擋跳轉偵測
+function checkInAppBrowser() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const isLine = ua.indexOf("Line") > -1;
+  const isFB = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1);
+  const isIG = ua.indexOf("Instagram") > -1;
 
-            <article class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200/75 flex flex-col hover:shadow-md transition-shadow duration-300 gsap-reveal">
-                <figure class="w-full bg-gray-900 overflow-hidden">
-                    <img src="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/" alt="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》" class="w-full aspect-video object-cover" referrerpolicy="no-referrer" loading="lazy">
-                </figure>
-                <div class="p-5 flex flex-col flex-grow">
-                    <h2 class="text-lg font-bold leading-tight mb-1">Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》</h2>
-                    <div class="flex items-center text-xs text-gray-500 mb-3 gap-1">
-                        <span class="text-gray-800 tracking-tighter">★★★★★</span>
-                        <span>👍 10 收藏 · 25 訂閱</span>
-                    </div>
-                    <p class="text-sm text-gray-600 line-clamp-3 mb-4">&quot;I sent a pawn to chop some wood for a bed, and the axe slipped, causing severe ...</p>
+  const params = new URLSearchParams(window.location.search);
+  if (isLine && params.get('openExternalBrowser') !== '1') {
+    // 用 URL 物件組網址：網址帶有 #錨點 時，原本直接拼字串會讓參數掉進錨點裡，造成無限重新導向
+    const url = new URL(window.location.href);
+    url.searchParams.set('openExternalBrowser', '1');
+    window.location.replace(url.href);
+    return;
+  }
 
-                    <div class="mt-auto pt-4 border-t border-gray-100">
-                        <div class="flex justify-between items-center mb-4 text-xs text-gray-500">
-                            <span>2026年10月 更新</span>
-                            <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3812133334" target="_blank" rel="noopener noreferrer" class="font-semibold text-gray-800 hover:underline flex items-center gap-1">View on Steam ↗</a>
-                        </div>
-                    </div>
-                </div>
-            </article>
-            
-            <!-- CARDS_END -->
+  if (isFB || isIG) {
+    document.getElementById('iab-warning').style.display = 'block';
+  }
+}
+checkInAppBrowser();
 
-            <!-- 預告卡片 2 ( Coming Soon 永遠保留在最後面 ) -->
-            <article class="bg-white/60 rounded-2xl overflow-hidden shadow-sm border border-gray-200/75 flex flex-col opacity-75">
-                <figure class="w-full bg-gray-200 aspect-video flex items-center justify-center">
-                    <span class="text-sm font-bold text-gray-400 tracking-widest">[ CLASSIFIED ]</span>
-                </figure>
-                <div class="p-5 flex flex-col flex-grow">
-                    <h2 class="text-lg font-bold leading-tight mb-1 text-gray-500">開發中：新模組項目</h2>
-                    <div class="flex items-center text-xs text-gray-400 mb-3 gap-1">
-                        <span>No ratings yet</span>
-                    </div>
-                    <p class="text-sm text-gray-500 line-clamp-3 mb-4">
-                        下一個獨立模組正在重構與測試中，將帶來全新的遊戲機制與 UI 改善，敬請期待。
-                    </p>
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <span class="border border-gray-300 text-gray-500 px-2.5 py-1 rounded-full text-xs font-medium">Coming Soon</span>
-                    </div>
-                    <div class="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
-                        <span>TBA</span>
-                    </div>
-                </div>
-            </article>
+// 進場動畫與平滑滾動：函式庫載入失敗（CDN 故障或 SRI 不符）時，直接顯示內容，不讓頁面變空白
+function showAllNow() {
+  document.querySelectorAll('.gsap-reveal').forEach(function (el) {
+    el.style.opacity = 1;
+    el.style.transform = 'none';
+  });
+}
 
-        </main>
-    </div>
+try {
+  if (window.Lenis) {
+    const lenis = new Lenis({ duration: 1.2, smooth: true, smoothTouch: false });
+    const raf = function (time) { lenis.raf(time); requestAnimationFrame(raf); };
+    requestAnimationFrame(raf);
+  }
+} catch (e) {
+  console.warn('Lenis 初始化失敗，略過平滑滾動：', e);
+}
 
-    <script>
-        // 防擋跳轉偵測 (保留你原本的實用功能)
-        function checkInAppBrowser() {
-            const ua = navigator.userAgent || navigator.vendor || window.opera;
-            const isLine = (ua.indexOf("Line") > -1);
-            const isFB = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1);
-            const isIG = (ua.indexOf("Instagram") > -1);
+if (window.gsap) {
+  gsap.to(".gsap-reveal", { y: 0, opacity: 1, duration: 0.8, stagger: 0.1, ease: "power2.out", delay: 0.1 });
+} else {
+  console.warn('GSAP 未載入，改為直接顯示內容');
+  showAllNow();
+}
+</script>
 
-            if (isLine && !window.location.search.includes('openExternalBrowser=1')) {
-                window.location.href = window.location.href + (window.location.search ? '&' : '?') + 'openExternalBrowser=1';
-                return;
-            }
-
-            if (isFB || isIG) {
-                document.getElementById('iab-warning').style.display = 'block';
-            }
-        }
-        checkInAppBrowser();
-
-        // 引入平滑滾動與進場動畫
-        const lenis = new Lenis({ duration: 1.2, smooth: true, smoothTouch: false });
-        function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
-        requestAnimationFrame(raf);
-        
-        gsap.to(".gsap-reveal", { y: 0, opacity: 1, duration: 0.8, stagger: 0.1, ease: "power2.out", delay: 0.1 });
-    </script>
 </body>
 </html>
