@@ -5,18 +5,6 @@ const API_KEY = process.env.STEAM_API_KEY;
 const STEAM_ID = process.env.STEAM_ID;
 const APP_ID = '294100'; // RimWorld
 
-// 贊助連結：請改成你自己的真實網址。
-// 網址仍含「你的」的項目會被自動略過（並在日誌警告），避免公開網站出現壞掉、
-// 或被別人搶註同名帳號後攔截贊助的連結。
-const DONATE_LINKS = [
-    { label: '🇹🇼 台灣 (信用卡・ATM)', url: '你的藍新EPG結帳網址',
-      cls: 'bg-[#fff3cd] text-[#856404] hover:bg-[#ffe8a1]' },
-    { label: '🇨🇳 大陸 (支付寶・微信)', url: 'https://afdian.net/a/你的愛發電帳號',
-      cls: 'bg-[#f8d7da] text-[#721c24] hover:bg-[#f5c6cb]' },
-    { label: '🌍 國際 (PayPal・Cards)', url: 'https://ko-fi.com/你的Ko-fi帳號',
-      cls: 'bg-[#d1ecf1] text-[#0c5460] hover:bg-[#bee5eb]' },
-];
-
 // ---------- 安全輔助函式 ----------
 
 // 所有來自 Steam 的文字都必須經過這個函式才能放進 HTML
@@ -29,36 +17,25 @@ function escapeHtml(s) {
         .replace(/'/g, '&#39;');
 }
 
-// 只接受 https 網址，擋掉 javascript:、data: 等；回傳 null 代表不安全
+// 只接受 https 網址
 function safeHttpsUrl(u) {
     try {
         const parsed = new URL(String(u));
-        return parsed.protocol === 'https:' ? parsed.href : null;
+        return parsed.protocol === 'https:' ? parsed.href : '';
     } catch {
-        return null;
+        return '';
     }
 }
 
-// 移除 Steam BBCode（[b] [/b] [url=...] [h1] [*] [img] 等），再截斷
+// 移除 Steam BBCode，並處理摘要
 function summarize(raw) {
     const plain = String(raw || '')
         .replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
-    if (!plain) return 'No description available.';
-    const chars = Array.from(plain); // 避免切到 emoji 的一半
-    return chars.length > 80 ? chars.slice(0, 80).join('') + '...' : plain;
-}
-
-function buildDonateHtml() {
-    return DONATE_LINKS.filter(link => {
-        const ok = !link.url.includes('你的') && safeHttpsUrl(link.url);
-        if (!ok) console.warn(`⚠ 略過尚未設定的贊助連結：${link.label}`);
-        return ok;
-    }).map(link => `
-                            <a href="${escapeHtml(safeHttpsUrl(link.url))}" target="_blank" rel="noopener noreferrer" class="flex justify-between items-center px-3 py-2 text-sm font-semibold ${link.cls} rounded-lg transition-colors">
-                                <span>${escapeHtml(link.label)}</span><span>→</span>
-                            </a>`).join('');
+    if (!plain) return 'NO_DESCRIPTION_AVAILABLE.';
+    const chars = Array.from(plain);
+    return chars.length > 85 ? chars.slice(0, 85).join('') + '...' : plain;
 }
 
 // ---------- 主流程 ----------
@@ -71,12 +48,10 @@ async function fetchAndGenerateCards() {
         if (!API_KEY) missing.push('STEAM_API_KEY（應放在 Secrets）');
         if (!STEAM_ID) missing.push('STEAM_ID（應放在 Variables）');
         if (missing.length > 0) {
-            throw new Error(`缺少設定：${missing.join('、')}。請檢查 Settings → Secrets and variables → Actions 與 yml 的 env 區塊。`);
+            throw new Error(`缺少設定：${missing.join('、')}。請檢查 Settings → Secrets and variables。`);
         }
 
         // 1. 取得名下所有工作坊項目 ID
-        // 正確端點是 IPublishedFileService/GetUserFiles（需要使用者 API Key）
-        // 原本的 ISteamUGC/GetUserPublishedFiles 不存在，會回 404
         const listParams = new URLSearchParams({
             key: API_KEY,
             steamid: STEAM_ID,
@@ -88,11 +63,9 @@ async function fetchAndGenerateCards() {
             `https://api.steampowered.com/IPublishedFileService/GetUserFiles/v1/?${listParams}`,
             { signal: AbortSignal.timeout(30000) }
         );
-        if (!listRes.ok) {
-            throw new Error(`Steam API 連線失敗 (狀態碼: ${listRes.status})`);
-        }
+        if (!listRes.ok) throw new Error(`Steam API 連線失敗 (狀態碼: ${listRes.status})`);
+        
         const listData = await listRes.json();
-
         if (!listData.response || !listData.response.publishedfiledetails) {
             console.log("找不到模組或 API 錯誤，保留現有頁面。");
             return;
@@ -115,14 +88,11 @@ async function fetchAndGenerateCards() {
             body: formData,
             signal: AbortSignal.timeout(30000)
         });
-        if (!detailsRes.ok) {
-            throw new Error(`Steam 詳細資料 API 失敗 (狀態碼: ${detailsRes.status})`);
-        }
+        if (!detailsRes.ok) throw new Error(`Steam 詳細資料 API 失敗 (狀態碼: ${detailsRes.status})`);
+        
         const detailsData = await detailsRes.json();
         const details = detailsData?.response?.publishedfiledetails;
-        if (!Array.isArray(details)) {
-            throw new Error("詳細資料格式異常，已中止，未修改網頁。");
-        }
+        if (!Array.isArray(details)) throw new Error("詳細資料格式異常，已中止，未修改網頁。");
 
         // 只公開：成功取得(result=1)、公開(visibility=0)、未被下架的項目
         const publicMods = details.filter(m => m.result === 1 && m.visibility === 0 && !m.banned);
@@ -131,49 +101,70 @@ async function fetchAndGenerateCards() {
             return;
         }
 
-        // 3. 組合 HTML（所有外部資料一律 escape / 驗證）
-        const donateHtml = buildDonateHtml();
+        // 3. 組合全新終端機 HTML 模板
         let cardsHTML = '';
 
         publicMods.forEach(mod => {
-            const title = escapeHtml(mod.title || 'Untitled');
-            const desc = escapeHtml(summarize(mod.description));
+            const title = escapeHtml(mod.title || 'UNKNOWN_ENTITY');
+            const rawDesc = mod.description || '';
+            const cleanDesc = escapeHtml(summarize(rawDesc));
+            const fullDescEscaped = escapeHtml(rawDesc.replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '').replace(/\s+/g, ' ').trim());
+            
             const imgUrl = safeHttpsUrl(mod.preview_url);
             const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${encodeURIComponent(mod.publishedfileid)}`;
             const subs = Number(mod.subscriptions) || 0;
             const favs = Number(mod.favorited) || 0;
+            
             const updated = new Date((Number(mod.time_updated) || 0) * 1000);
-            const dateStr = isNaN(updated)
-                ? ''
-                : updated.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' });
+            const dateStr = isNaN(updated) ? 'UNKNOWN' : updated.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
+
+            // 提取標籤與 RimWorld 版本
+            const allTags = (mod.tags || []).map(t => t.tag);
+            const versions = allTags.filter(t => /^\d+\.\d+$/.test(t));
+            const tags = allTags.filter(t => !/^\d+\.\d+$/.test(t));
+
+            // 將資料轉成屬性格式，供給 index.html 的搜尋系統使用
+            const tagsJson = escapeHtml(JSON.stringify(tags));
+            const versionsJson = escapeHtml(JSON.stringify(versions));
+            const searchIndex = escapeHtml(`${title} ${fullDescEscaped} ${allTags.join(' ')}`.toLowerCase());
 
             const figure = imgUrl
-                ? `<img src="${escapeHtml(imgUrl)}" alt="${title}" class="w-full aspect-video object-cover" referrerpolicy="no-referrer" loading="lazy">`
-                : `<div class="w-full aspect-video"></div>`;
-
-            const supportBlock = donateHtml ? `
-                        <div class="space-y-2">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Support this mod</p>${donateHtml}
-                        </div>` : '';
+                ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover filter grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300" referrerpolicy="no-referrer" loading="lazy">`
+                : `<div class="w-full h-full bg-black flex items-center justify-center text-[#3f3f46] font-mono text-xs">NO_IMAGE</div>`;
 
             cardsHTML += `
-            <article class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200/75 flex flex-col hover:shadow-md transition-shadow duration-300 gsap-reveal">
-                <figure class="w-full bg-gray-900 overflow-hidden">
+            <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer" 
+                     data-mod-card 
+                     data-title="${title}" 
+                     data-meta="MODIFIED: ${dateStr} // FAV: ${favs} // SUB: ${subs}" 
+                     data-img="${imgUrl}" 
+                     data-url="${url}" 
+                     data-tags="${tagsJson}" 
+                     data-versions="${versionsJson}" 
+                     data-full="${fullDescEscaped}" 
+                     data-search="${searchIndex}">
+                
+                <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-50"></div>
                     ${figure}
                 </figure>
-                <div class="p-5 flex flex-col flex-grow">
-                    <h2 class="text-lg font-bold leading-tight mb-1">${title}</h2>
-                    <div class="flex items-center text-xs text-gray-500 mb-3 gap-1">
-                        <span class="text-gray-800 tracking-tighter">★★★★★</span>
-                        <span>👍 ${favs} 收藏 · ${subs} 訂閱</span>
+                
+                <div class="p-4 sm:p-5 flex flex-col flex-grow bg-[#050608]">
+                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: ${mod.publishedfileid}</div>
+                    <h2 class="text-sm font-bold text-white mb-2 uppercase leading-tight" style="font-family: 'Inter', sans-serif;">${title}</h2>
+                    
+                    <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
+                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">FAV: ${favs}</span>
+                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">SUB: ${subs}</span>
                     </div>
-                    <p class="text-sm text-gray-600 line-clamp-3 mb-4">${desc}</p>
-
-                    <div class="mt-auto pt-4 border-t border-gray-100">
-                        <div class="flex justify-between items-center mb-4 text-xs text-gray-500">
-                            <span>${escapeHtml(dateStr)} 更新</span>
-                            <a href="${url}" target="_blank" rel="noopener noreferrer" class="font-semibold text-gray-800 hover:underline flex items-center gap-1">View on Steam ↗</a>
-                        </div>${supportBlock}
+                    
+                    <p class="text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono">
+                        > ${cleanDesc}
+                    </p>
+                    
+                    <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
+                        <span>${dateStr}</span>
+                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity">ACCESS -></span>
                     </div>
                 </div>
             </article>
@@ -191,7 +182,6 @@ async function fetchAndGenerateCards() {
             throw new Error("在 index.html 中找不到 <!-- CARDS_START --> 或 <!-- CARDS_END --> 標記，無法替換內容！");
         }
 
-        // 用函式當替換值：避免內容裡的 $& $' $` 被 JS 當成特殊替換語法
         html = html.replace(
             /<!-- CARDS_START -->[\s\S]*?<!-- CARDS_END -->/,
             () => `<!-- CARDS_START -->\n${cardsHTML}\n            <!-- CARDS_END -->`
