@@ -116,9 +116,8 @@ async function fetchAndGenerateCards() {
 
             const tagsJson = escapeHtml(JSON.stringify(tags));
             const versionsJson = escapeHtml(JSON.stringify(versions));
-            const searchIndex = escapeHtml(`${title} ${fullDescEscaped}${allTags.join(' ')}`.toLowerCase());
+            const searchIndex = escapeHtml(`${title} ${fullDescEscaped} ${allTags.join(' ')}`.toLowerCase());
 
-            // 這裡移除了灰階屬性，讓圖片保持原本的色彩，只保留滑鼠移過去微微變亮的互動感
             const figure = imgUrl
                 ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">`
                 : `<div class="w-full h-full bg-black flex items-center justify-center text-[#3f3f46] font-mono text-xs">NO_IMAGE</div>`;
@@ -127,7 +126,7 @@ async function fetchAndGenerateCards() {
             <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer" 
                      data-mod-card 
                      data-title="${title}" 
-                     data-meta="MODIFIED: ${dateStr} // FAV: ${favs} // SUB:${subs}" 
+                     data-meta="MODIFIED: ${dateStr} // FAV: ${favs} // SUB: ${subs}" 
                      data-img="${imgUrl}" 
                      data-url="${url}" 
                      data-tags="${tagsJson}" 
@@ -135,4 +134,56 @@ async function fetchAndGenerateCards() {
                      data-full="${fullDescEscaped}" 
                      data-search="${searchIndex}">
                 
-                <figure class="w-full bg-black aspect-video flex items-center
+                <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-20"></div>
+                    ${figure}
+                </figure>
+                
+                <div class="p-4 sm:p-5 flex flex-col flex-grow bg-[#050608]">
+                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: ${mod.publishedfileid}</div>
+                    <h2 class="text-sm font-bold text-white mb-2 uppercase leading-tight" style="font-family: 'Inter', sans-serif;">${title}</h2>
+                    
+                    <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
+                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">FAV: ${favs}</span>
+                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">SUB: ${subs}</span>
+                    </div>
+                    
+                    <p class="text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono">
+                        > ${cleanDesc}
+                    </p>
+                    
+                    <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
+                        <span>${dateStr}</span>
+                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity">ACCESS -></span>
+                    </div>
+                </div>
+            </article>
+            `;
+        });
+
+        // 4. 寫入 index.html
+        if (!fs.existsSync('index.html')) {
+            throw new Error("找不到 index.html 檔案！請確認檔案名稱是否正確且位於專案最外層。");
+        }
+
+        let html = fs.readFileSync('index.html', 'utf8');
+
+        if (!html.includes('<!-- CARDS_START -->') || !html.includes('<!-- CARDS_END -->')) {
+            throw new Error("在 index.html 中找不到 <!-- CARDS_START --> 或 <!-- CARDS_END --> 標記，無法替換內容！");
+        }
+
+        html = html.replace(
+            /<!-- CARDS_START -->[\s\S]*?<!-- CARDS_END -->/,
+            () => `<!-- CARDS_START -->\n${cardsHTML}\n            <!-- CARDS_END -->`
+        );
+        fs.writeFileSync('index.html', html, 'utf8');
+
+        console.log(`✅ 網頁自動化更新完成！共 ${publicMods.length} 個模組。`);
+
+    } catch (error) {
+        console.error("❌ 更新失敗:", error.message);
+        process.exit(1);
+    }
+}
+
+fetchAndGenerateCards();
