@@ -6,8 +6,6 @@ const STEAM_ID = process.env.STEAM_ID;
 const APP_ID = '294100'; // RimWorld
 
 // ---------- 安全輔助函式 ----------
-
-// 所有來自 Steam 的文字都必須經過這個函式才能放進 HTML
 function escapeHtml(s) {
     return String(s ?? '')
         .replace(/&/g, '&amp;')
@@ -17,7 +15,6 @@ function escapeHtml(s) {
         .replace(/'/g, '&#39;');
 }
 
-// 只接受 https 網址
 function safeHttpsUrl(u) {
     try {
         const parsed = new URL(String(u));
@@ -27,7 +24,6 @@ function safeHttpsUrl(u) {
     }
 }
 
-// 移除 Steam BBCode，並處理摘要
 function summarize(raw) {
     const plain = String(raw || '')
         .replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '')
@@ -39,7 +35,6 @@ function summarize(raw) {
 }
 
 // ---------- 主流程 ----------
-
 async function fetchAndGenerateCards() {
     try {
         console.log("正在從 Steam 取得作者所有的模組清單...");
@@ -51,7 +46,6 @@ async function fetchAndGenerateCards() {
             throw new Error(`缺少設定：${missing.join('、')}。請檢查 Settings → Secrets and variables。`);
         }
 
-        // 1. 取得名下所有工作坊項目 ID
         const listParams = new URLSearchParams({
             key: API_KEY,
             steamid: STEAM_ID,
@@ -77,7 +71,6 @@ async function fetchAndGenerateCards() {
             return;
         }
 
-        // 2. 取得詳細數據
         console.log(`找到 ${modIds.length} 個模組，正在獲取詳細數據...`);
         const formData = new URLSearchParams();
         formData.append('itemcount', modIds.length);
@@ -94,14 +87,13 @@ async function fetchAndGenerateCards() {
         const details = detailsData?.response?.publishedfiledetails;
         if (!Array.isArray(details)) throw new Error("詳細資料格式異常，已中止，未修改網頁。");
 
-        // 只公開：成功取得(result=1)、公開(visibility=0)、未被下架的項目
         const publicMods = details.filter(m => m.result === 1 && m.visibility === 0 && !m.banned);
         if (publicMods.length === 0) {
             console.log("沒有可公開的模組，保留現有頁面。");
             return;
         }
 
-        // 3. 組合全新終端機 HTML 模板
+        // 3. 組合全新終端機 HTML 模板 (已黑化並補上 data 標籤)
         let cardsHTML = '';
 
         publicMods.forEach(mod => {
@@ -118,12 +110,10 @@ async function fetchAndGenerateCards() {
             const updated = new Date((Number(mod.time_updated) || 0) * 1000);
             const dateStr = isNaN(updated) ? 'UNKNOWN' : updated.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
 
-            // 提取標籤與 RimWorld 版本
             const allTags = (mod.tags || []).map(t => t.tag);
             const versions = allTags.filter(t => /^\d+\.\d+$/.test(t));
             const tags = allTags.filter(t => !/^\d+\.\d+$/.test(t));
 
-            // 將資料轉成屬性格式，供給 index.html 的搜尋系統使用
             const tagsJson = escapeHtml(JSON.stringify(tags));
             const versionsJson = escapeHtml(JSON.stringify(versions));
             const searchIndex = escapeHtml(`${title} ${fullDescEscaped} ${allTags.join(' ')}`.toLowerCase());
