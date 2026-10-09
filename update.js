@@ -1,6 +1,5 @@
 const fs = require('fs');
 
-// 這些密鑰由 GitHub Actions 運行時注入
 const API_KEY = process.env.STEAM_API_KEY;
 const STEAM_ID = process.env.STEAM_ID;
 const APP_ID = '294100'; // RimWorld
@@ -24,12 +23,26 @@ function safeHttpsUrl(u) {
     }
 }
 
-function summarize(raw) {
-    const plain = String(raw || '')
-        .replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    if (!plain) return 'NO_DESCRIPTION_AVAILABLE.';
+// 專門處理詳細內容：保留換行、轉換清單、移除雜亂 BBCode 標籤
+function cleanBBCodeFull(raw) {
+    if (!raw) return 'NO_DESCRIPTION_AVAILABLE.';
+    let text = String(raw);
+    
+    // 移除圖片標籤
+    text = text.replace(/[img].*?\[\/img\]/gis, '');
+    // 處理清單符號
+    text = text.replace(/\[\*\]/g, '• ');
+    // 移除所有的 BBCode 標籤 (保留裡面的文字)
+    text = text.replace(/\[\/?(b\vert{}i\vert{}u\vert{}strike\vert{}spoiler\vert{}noparse\vert{}hr\vert{}h1\vert{}h2\vert{}h3\vert{}list\vert{}olist\vert{}quote\vert{}code\vert{}table\vert{}tr\vert{}th\vert{}td\vert{}url)(?:=[^\]]*)?\]/gi, '');
+    
+    // 將多餘的連續換行壓縮成最多兩行，保持排版美觀
+    text = text.replace(/\n{3,}/g, '\n\n');
+    return text.trim();
+}
+
+// 專門處理小卡片摘要：移除所有標籤與換行，壓縮成一行短句
+function summarizeSnippet(raw) {
+    const plain = cleanBBCodeFull(raw).replace(/\s+/g, ' ').trim();
     const chars = Array.from(plain);
     return chars.length > 85 ? chars.slice(0, 85).join('') + '...' : plain;
 }
@@ -93,14 +106,16 @@ async function fetchAndGenerateCards() {
             return;
         }
 
-        // 3. 組合全新終端機 HTML 模板 (已移除灰階濾鏡，保持全彩)
         let cardsHTML = '';
 
         publicMods.forEach(mod => {
             const title = escapeHtml(mod.title || 'UNKNOWN_ENTITY');
             const rawDesc = mod.description || '';
-            const cleanDesc = escapeHtml(summarize(rawDesc));
-            const fullDescEscaped = escapeHtml(rawDesc.replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '').replace(/\s+/g, ' ').trim());
+            
+            // 摘要用於卡片正面
+            const cleanDesc = escapeHtml(summarizeSnippet(rawDesc));
+            // 完整內容用於點開的 Modal (保留換行符號)
+            const fullDescCleaned = escapeHtml(cleanBBCodeFull(rawDesc));
             
             const imgUrl = safeHttpsUrl(mod.preview_url);
             const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${encodeURIComponent(mod.publishedfileid)}`;
@@ -116,7 +131,8 @@ async function fetchAndGenerateCards() {
 
             const tagsJson = escapeHtml(JSON.stringify(tags));
             const versionsJson = escapeHtml(JSON.stringify(versions));
-            const searchIndex = escapeHtml(`${title} ${fullDescEscaped} ${allTags.join(' ')}`.toLowerCase());
+            // 搜尋引擎用的字串則需要壓扁
+            const searchIndex = escapeHtml(`${title} ${fullDescCleaned.replace(/\n/g, ' ')} ${allTags.join(' ')}`.toLowerCase());
 
             const figure = imgUrl
                 ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">`
@@ -131,7 +147,7 @@ async function fetchAndGenerateCards() {
                      data-url="${url}" 
                      data-tags="${tagsJson}" 
                      data-versions="${versionsJson}" 
-                     data-full="${fullDescEscaped}" 
+                     data-full="${fullDescCleaned}" 
                      data-search="${searchIndex}">
                 
                 <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
@@ -161,15 +177,14 @@ async function fetchAndGenerateCards() {
             `;
         });
 
-        // 4. 寫入 index.html
         if (!fs.existsSync('index.html')) {
-            throw new Error("找不到 index.html 檔案！請確認檔案名稱是否正確且位於專案最外層。");
+            throw new Error("找不到 index.html 檔案！");
         }
 
         let html = fs.readFileSync('index.html', 'utf8');
 
         if (!html.includes('<!-- CARDS_START -->') || !html.includes('<!-- CARDS_END -->')) {
-            throw new Error("在 index.html 中找不到 <!-- CARDS_START --> 或 <!-- CARDS_END --> 標記，無法替換內容！");
+            throw new Error("找不到替換標記！");
         }
 
         html = html.replace(
