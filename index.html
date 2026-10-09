@@ -1,237 +1,319 @@
-const fs = require('fs');
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NANA_ARCHIVE // RIMWORLD_MODS</title>
 
-// 這些密鑰由 GitHub Actions 運行時注入
-const API_KEY = process.env.STEAM_API_KEY;
-const STEAM_ID = process.env.STEAM_ID;
-const APP_ID = '294100'; // RimWorld
+<!-- 核心套件 -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://unpkg.com/@studio-freight/lenis@1.0.33/dist/lenis.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@700;900&display=swap" rel="stylesheet">
 
-// ---------- 安全輔助函式 ----------
+<style>
+:root {
+  --bg-color: #050608;
+  --panel-bg: #090a0f;
+  --border-dim: #1d2027;
+  --border-box: #232732;
+  --accent-amber: #d97706;
+  --text-main: #d4d4d8;
+  
+  /* 固定標題列高度，保證 100% 貼齊無縫隙 */
+  --header-h: 60px;
+}
+@media (min-width: 640px) { :root { --header-h: 68px; } }
 
-// 所有來自 Steam 的文字都必須經過這個函式才能放進 HTML
-function escapeHtml(s) {
-    return String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+/* 防止手機橫向捲動破版 */
+html { overflow-x: hidden; width: 100%; overflow-anchor: none; }
+body { 
+  width: 100%; overflow-anchor: none; background-color: var(--bg-color); 
+  font-family: 'JetBrains Mono', monospace; color: var(--text-main); 
+  -webkit-tap-highlight-color: transparent; 
+  background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px); 
+  background-size: 32px 32px; 
 }
 
-// 只接受 https 網址
-function safeHttpsUrl(u) {
-    try {
-        const parsed = new URL(String(u));
-        return parsed.protocol === 'https:' ? parsed.href : '';
-    } catch {
-        return '';
+/* 平滑滾動 */
+html.lenis { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* 搜尋框與按鈕邊框 */
+.term-input { background: rgba(0, 0, 0, 0.7); border: 1px solid var(--border-box); color: var(--accent-amber); }
+.term-input:focus { border-color: var(--accent-amber); outline: none; }
+.term-input::placeholder { color: #3f4452; }
+.term-btn { border: 1px solid var(--border-box); background: #090a0f; color: #a1a1aa; transition: all 0.15s ease; }
+.term-btn:hover { border-color: var(--accent-amber); color: var(--accent-amber); }
+
+/* 篩選面板 */
+.panel { position: absolute; z-index: 40; top: 100%; left: 0; margin-top: 0.25rem; min-width: 11rem; max-height: 16rem; overflow: auto; background: #090a0f; border: 1px solid var(--border-box); padding: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.8); }
+.panel label { display: flex; gap: 0.5rem; align-items: center; padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; color: #a1a1aa; }
+.panel label:hover { background: rgba(217, 119, 6, 0.1); color: var(--accent-amber); }
+input[type="checkbox"] { appearance: none; width: 12px; height: 12px; border: 1px solid var(--border-box); background: transparent; cursor: pointer; position: relative; }
+input[type="checkbox"]:checked { background: var(--accent-amber); border-color: var(--accent-amber); }
+input[type="checkbox"]:checked::after { content: '×'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%); color: black; font-weight: bold; font-size: 13px; }
+
+/* 模態視窗 */
+.modal { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.modal-box { position: relative; background: #090a0f; border: 1px solid var(--accent-amber); max-width: 44rem; width: 100%; max-height: 90vh; overflow: auto; box-shadow: 0 0 30px rgba(0,0,0,0.9); }
+.modal-x { position: absolute; top: 0; right: 0; width: 2.25rem; height: 2.25rem; background: var(--accent-amber); color: #000; font-weight: bold; z-index: 10; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.modal-x:hover { background: #fff; }
+[hidden] { display: none !important; }
+
+/* 閃爍游標 */
+.cursor-blink { animation: blink 1s step-end infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+#iab-warning { display: none; background: #991b1b; color: white; font-weight: bold; text-align: center; padding: 10px; font-size: 0.75rem; }
+
+/* ===== SUPPORT 面板變形邏輯 ===== */
+.sup-box { position: sticky; top: var(--header-h); z-index: 40; transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s; }
+
+/* 展開狀態 (下滑時手動點開 [+])：完全融入 Header，去除左右上框線，僅保留底部橘線 */
+.sup-box.docked:not(.compact) { 
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+  border-top-color: transparent !important;
+  border-bottom-color: var(--accent-amber) !important; 
+  background-color: var(--bg-color) !important; /* 背景徹底融入 Header */
+  box-shadow: 0 15px 30px rgba(0,0,0,0.95); 
+  padding-top: 1.5rem !important; 
+}
+/* 融入狀態下隱藏原標籤，保持極簡 */
+.sup-box.docked:not(.compact) .sup-label { 
+  display: none !important; 
+}
+
+/* 緊湊狀態：單行控制列 */
+.sup-box.compact {
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0.5rem 0.75rem !important;
+  border-left: none; border-right: none; border-top: none; 
+  border-bottom: 1px solid var(--border-dim) !important;
+  background-color: var(--bg-color) !important; 
+  box-shadow: 0 10px 20px rgba(0,0,0,0.9); 
+}
+.sup-box.compact .sup-label { position: static !important; padding: 0 !important; background: none !important; white-space: nowrap; margin-left: 0 !important;}
+.sup-box.compact .sup-desc, .sup-box.compact .sup-sub, .sup-box.compact .sup-exec, .sup-box.compact .t-full { display: none !important; }
+.sup-box.compact .t-short { display: block !important; margin: 0 !important; }
+.sup-box.compact .sup-grid {
+  flex: 1; min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: none !important; gap: 0.375rem !important;
+}
+.sup-box.compact .support-link { min-height: 0 !important; padding: 0.4rem 0.25rem !important; flex-direction: row; align-items: center; justify-content: center; text-align: center; }
+@media (min-width: 640px) {
+  .sup-box.compact { padding: 0.5rem 1rem !important; gap: 1rem; }
+  .sup-box.compact .sup-grid { max-width: 28rem; margin-left: auto; }
+  .sup-box.compact .support-link { padding: 0.45rem 0.75rem !important; }
+}
+
+.sup-toggle { display: none; position: absolute; top: 0.4rem; right: 0.6rem; border: 1px solid var(--border-box); background: #090a0f; color: #a1a1aa; font: 700 11px 'JetBrains Mono', monospace; padding: 0.25rem 0.5rem; cursor: pointer; }
+.sup-toggle:hover { border-color: var(--accent-amber); color: var(--accent-amber); }
+.sup-box.docked .sup-toggle { display: block; }
+.sup-box.compact .sup-toggle { position: static; flex: none; border: none; background: transparent; padding: 0.25rem; }
+</style>
+</head>
+<body class="min-h-screen pb-16">
+
+<div id="iab-warning" class="z-50 relative border-b border-[#ef4444]">[ALERT] 系統偵測到社群內建瀏覽器。為確保支付跳轉正常，請點選右上角改以外部瀏覽器開啟。</div>
+
+<!-- 頂部標題列 (高度固定化、padding統一 px-5 md:px-10 保證對齊) -->
+<header class="w-full h-[60px] sm:h-[68px] border-b border-[#1d2027] bg-[#050608] sticky top-0 z-50">
+  <div class="h-full px-5 md:px-10 max-w-[1400px] mx-auto flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2 sm:gap-4 min-w-0">
+      <h1 class="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-wider text-white whitespace-nowrap" style="font-family: 'Inter', sans-serif;">NANA_ARCHIVE</h1>
+      <div class="h-3 sm:h-4 w-[1px] bg-[#2a2e39] flex-shrink-0"></div>
+      <span class="text-[#717684] text-[10px] sm:text-xs font-mono uppercase tracking-widest whitespace-nowrap truncate">RIMWORLD_MODS</span>
+    </div>
+  </div>
+</header>
+
+<!-- 主內容區 (padding統一 px-5 md:px-10 保證邊界完美切齊) -->
+<main class="px-5 md:px-10 py-6 sm:py-8 md:py-10 max-w-[1400px] mx-auto w-full box-border">
+
+  <div id="sup-sentinel" aria-hidden="true" style="height:0"></div>
+  
+  <!-- 面板區 (內距統一 p-5 md:p-8) -->
+  <section id="support" class="sup-box mb-8 sm:mb-10 w-full border border-[#232732] bg-[#090a0f] p-5 md:p-8">
+    
+    <!-- 標籤：完美定位。利用 -ml-2 抵銷 px-2 的內距，保證文字垂直對齊下方內文 -->
+    <div id="sup-label" class="sup-label absolute -top-[9px] left-5 md:left-8 -ml-2 bg-[#090a0f] px-2 flex items-center h-[18px] text-[10px] sm:text-xs font-bold text-[#d97706] uppercase tracking-widest leading-none">
+      // SUPPORT_PROTOCOL
+    </div>
+    
+    <div class="sup-desc mb-5 sm:mb-6">
+      <div class="text-[11px] sm:text-xs text-[#a1a1aa] leading-relaxed font-mono space-y-1">
+        <p>&gt; SYSTEM MAINTENANCE REQUIRES RESOURCES.</p>
+        <p>&gt; INITIATE TRANSFER TO ACCELERATE DEVELOPMENT CYCLES.</p>
+      </div>
+    </div>
+
+    <div class="sup-grid grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+      <a class="support-link flex flex-col justify-between border border-[#d97706] text-[#d97706] hover:bg-[#d97706]/10 p-3.5 sm:p-4 text-xs font-mono transition-colors min-h-[84px] sm:min-h-[96px] group" href="你的藍新EPG結帳網址" target="_blank" rel="noopener noreferrer">
+        <div class="space-y-1"><span class="t-full block font-bold">&gt; LOCAL_NODE [TW]</span><span class="t-short hidden font-bold">&gt; TW</span><span class="sup-sub block text-[10px] opacity-75">(CREDIT/ATM)</span></div>
+        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform">EXECUTE -&gt;</div>
+      </a>
+      <a class="support-link flex flex-col justify-between border border-[#65a30d] text-[#65a30d] hover:bg-[#65a30d]/10 p-3.5 sm:p-4 text-xs font-mono transition-colors min-h-[84px] sm:min-h-[96px] group" href="https://afdian.net/a/nanaformoss" target="_blank" rel="noopener noreferrer">
+        <div class="space-y-1"><span class="t-full block font-bold">&gt; MAINLAND_NODE [CN]</span><span class="t-short hidden font-bold">&gt; CN</span><span class="sup-sub block text-[10px] opacity-75">(ALIPAY/WECHAT)</span></div>
+        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform">EXECUTE -&gt;</div>
+      </a>
+      <a class="support-link flex flex-col justify-between border border-[#06b6d4] text-[#06b6d4] hover:bg-[#06b6d4]/10 p-3.5 sm:p-4 text-xs font-mono transition-colors min-h-[84px] sm:min-h-[96px] group" href="https://ko-fi.com/nanaformoss" target="_blank" rel="noopener noreferrer">
+        <div class="space-y-1"><span class="t-full block font-bold">&gt; GLOBAL_NODE [INTL]</span><span class="t-short hidden font-bold">&gt; INTL</span><span class="sup-sub block text-[10px] opacity-75">(PAYPAL/CARD)</span></div>
+        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform">EXECUTE -&gt;</div>
+      </a>
+    </div>
+    <button id="sup-toggle" class="sup-toggle" type="button" aria-expanded="true"></button>
+  </section>
+
+  <section class="mb-6 sm:mb-8 w-full">
+    <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
+      <div class="relative flex-grow sm:max-w-md w-full"><span class="absolute left-3 top-2.5 text-[#d97706] font-bold">&gt;</span><input id="q" type="text" placeholder="QUERY_RECORDS..." class="term-input w-full py-2 pl-8 pr-4 text-xs uppercase font-mono tracking-wider transition-colors box-border"></div>
+      <div class="flex gap-2 text-xs font-mono">
+        <div class="relative flex-1 sm:flex-initial"><button id="btn-tags" aria-expanded="false" class="term-btn w-full sm:w-auto px-4 py-2 transition-colors uppercase">[ TAGS ]</button><div id="panel-tags" class="panel" hidden></div></div>
+        <div class="relative flex-1 sm:flex-initial"><button id="btn-versions" aria-expanded="false" class="term-btn w-full sm:w-auto px-4 py-2 transition-colors uppercase">[ VERSIONS ]</button><div id="panel-versions" class="panel" hidden></div></div>
+      </div>
+    </div>
+    <p id="count" class="text-[11px] text-[#525866] mt-3.5 uppercase tracking-widest font-mono">MATCHING_RECORDS: 0</p>
+  </section>
+
+  <section id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 pt-1 w-full">
+    <!-- CARDS_START --><!-- CARDS_END -->
+    <article id="coming-soon" class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-75 hover:opacity-100 transition-opacity">
+      <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732]"><span class="text-xs font-bold text-[#d97706] tracking-[0.4em] cursor-blink">CLASSIFIED</span></figure>
+      <div class="p-4 sm:p-5 flex flex-col flex-grow">
+        <div class="text-[10px] text-[#525866] mb-1.5 uppercase font-mono">SYS.DAT // UNKNOWN</div><h2 class="text-sm font-bold text-white mb-2 uppercase" style="font-family: 'Inter', sans-serif;">[REDACTED_PROJECT]</h2>
+        <p class="text-xs text-[#717684] line-clamp-3 mb-4 font-mono leading-relaxed">&gt; INITIALIZING RECONSTRUCTION PROTOCOL...<br>&gt; CORE MECHANICS OVERHAUL IN PROGRESS.<br>&gt; AWAITING DEPLOYMENT.</p>
+        <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#d97706] uppercase flex justify-between font-mono"><span>STATUS: IN_DEV</span><span class="cursor-blink">_</span></div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="modal-box p-1">
+    <button id="m-close" class="modal-x" aria-label="Close">✕</button>
+    <div class="border border-[#1d2027] bg-[#090a0f]">
+      <img id="m-img" alt="" class="w-full aspect-video object-cover filter grayscale opacity-80 border-b border-[#1d2027]">
+      <div class="p-5 sm:p-6">
+        <h2 id="m-title" class="text-base sm:text-lg font-bold mb-2 uppercase text-[#d97706]" style="font-family: 'Inter', sans-serif;"></h2>
+        <p id="m-meta" class="text-[10px] text-[#525866] mb-4 tracking-widest font-mono"></p>
+        <div id="m-chips" class="flex flex-wrap gap-1.5 sm:gap-2 mb-4"></div><p id="m-desc" class="text-xs text-[#a1a1aa] mb-6 leading-relaxed font-mono" style="white-space:pre-line"></p>
+        <div class="flex justify-between items-center border-t border-[#1d2027] pt-4"><a id="m-steam" class="border border-[#d4d4d8] text-[#d4d4d8] hover:bg-[#d4d4d8] hover:text-black px-4 py-2 text-xs font-mono font-bold uppercase transition-colors" target="_blank" rel="noopener noreferrer">ACCESS STEAM -&gt;</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function checkInAppBrowser() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const isLine = ua.indexOf("Line") > -1; const isFB = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1); const isIG = ua.indexOf("Instagram") > -1;
+  const params = new URLSearchParams(window.location.search);
+  if (isLine && params.get('openExternalBrowser') !== '1') { const url = new URL(window.location.href); url.searchParams.set('openExternalBrowser', '1'); window.location.replace(url.href); return; }
+  if (isFB || isIG) { const warning = document.getElementById('iab-warning'); if (warning) warning.style.display = 'block'; }
+}
+checkInAppBrowser();
+
+try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true, smoothTouch: false }); const raf = function (time) { lenis.raf(time); requestAnimationFrame(raf); }; requestAnimationFrame(raf); } } catch (e) {}
+
+(function () {
+  const ok = [].slice.call(document.querySelectorAll('#support .support-link')).filter(function (a) {
+    const href = a.getAttribute('href') || '', good = /^https:\/\//i.test(href) && href.indexOf('你的') === -1;
+    if (!good) a.style.display = 'none'; return good;
+  });
+  if (!ok.length) { const sup = document.getElementById('support'); if (sup) sup.style.display = 'none'; }
+})();
+
+(function () {
+  const grid = document.getElementById('cards-grid'), m = document.getElementById('modal'); let lastFocused = null;
+  function $(id) { return document.getElementById(id); } function parse(c, k) { try { return JSON.parse(c.dataset[k] || '[]'); } catch (e) { return []; } }
+  function open(c) {
+    lastFocused = document.activeElement; const src = c.dataset.img || '', img = $('m-img'); img.hidden = !/^https:\/\//i.test(src); img.src = img.hidden ? '' : src; img.alt = c.dataset.title || '';
+    $('m-title').textContent = c.dataset.title || ''; $('m-meta').textContent = c.dataset.meta || ''; $('m-desc').textContent = c.dataset.full || '';
+    const chips = $('m-chips'); chips.textContent = '';
+    parse(c, 'versions').concat(parse(c, 'tags')).forEach(function (t) { const s = document.createElement('span'); s.className = 'text-[10px] bg-[#1d2027] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#2a2e39] font-mono'; s.textContent = t; chips.appendChild(s); });
+    const st = $('m-steam'), url = c.dataset.url || ''; st.hidden = !/^https:\/\/steamcommunity\.com\//.test(url); st.href = st.hidden ? '#' : url;
+    m.hidden = false; document.body.style.overflow = 'hidden'; $('m-close').focus();
+  }
+  function close() { m.hidden = true; document.body.style.overflow = ''; if (lastFocused && lastFocused.focus) lastFocused.focus(); }
+  if (grid) { grid.addEventListener('click', function (e) { const c = e.target.closest('[data-mod-card]'); if (c && !e.target.closest('a')) open(c); }); grid.addEventListener('keydown', function (e) { const c = e.target.closest('[data-mod-card]'); if (c && e.target === c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(c); } }); }
+  $('m-close').onclick = close; m.addEventListener('click', function (e) { if (e.target === m) close(); }); document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !m.hidden) close(); });
+})();
+
+(function () {
+  let cards = [].slice.call(document.querySelectorAll('[data-mod-card]'));
+  const soon = document.getElementById('coming-soon'), q = document.getElementById('q'), count = document.getElementById('count'); const sel = { tags: new Set(), versions: new Set() };
+  function parse(c, k) { try { return JSON.parse(c.dataset[k] || '[]'); } catch (e) { return []; } } function closeAll() { document.querySelectorAll('.panel').forEach(function (p) { p.hidden = true; }); }
+  function build(key) {
+    const btn = document.getElementById('btn-' + key), panel = document.getElementById('panel-' + key), all = new Set();
+    cards.forEach(function (c) { parse(c, key).forEach(function (v) { all.add(v); }); }); const list = Array.from(all).sort(function (a, b) { return b.localeCompare(a, undefined, { numeric: true }); }); panel.innerHTML = '';
+    if (!list.length) { const p = document.createElement('p'); p.className = 'text-xs text-[#525866] p-2'; p.textContent = 'NO_DATA'; panel.appendChild(p); }
+    list.forEach(function (v) { const l = document.createElement('label'), i = document.createElement('input'); i.type = 'checkbox'; i.onchange = function () { if (i.checked) sel[key].add(v); else sel[key].delete(v); run(); }; l.appendChild(i); l.appendChild(document.createTextNode(v)); panel.appendChild(l); });
+    btn.onclick = function (e) { e.stopPropagation(); const open = panel.hidden; closeAll(); panel.hidden = !open; btn.setAttribute('aria-expanded', String(open)); }; panel.onclick = function (e) { e.stopPropagation(); };
+  }
+  function run() {
+    const term = q.value.trim().toLowerCase(); let shown = 0;
+    cards.forEach(function (c) { const ok = (!term || (c.dataset.search || '').indexOf(term) > -1) && (!sel.tags.size || parse(c, 'tags').some(function (t) { return sel.tags.has(t); })) && (!sel.versions.size || parse(c, 'versions').some(function (v) { return sel.versions.has(v); })); c.hidden = !ok; if (ok) shown++; });
+    if (soon) soon.hidden = !!(term || sel.tags.size || sel.versions.size); if (count) count.textContent = 'MATCHING_RECORDS: ' + shown;
+  }
+  document.addEventListener('click', closeAll); document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); }); if (q) q.addEventListener('input', run);
+  setTimeout(function() { cards = [].slice.call(document.querySelectorAll('[data-mod-card]')); build('tags'); build('versions'); run(); }, 300);
+})();
+
+(function () {
+  const box = document.getElementById('support');
+  if (!box || box.style.display === 'none') return;
+  const sent = document.getElementById('sup-sentinel'), label = document.getElementById('sup-label'), tog = document.getElementById('sup-toggle');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const L_FULL = '// SUPPORT_PROTOCOL', L_MIN = '// SUPPORT';
+  let docked = false, compact = false, pin = null, pinY = 0, ticking = false, timer = null, anim = null;
+
+  const CH = '!<>-_\\/[]{}=+*^?#01';
+  function scramble(el, text) {
+    if (reduce) { el.textContent = text; return; }
+    clearInterval(timer); let f = 0;
+    timer = setInterval(function () {
+      el.textContent = text.split('').map(function (c, i) { return (c === ' ' || c === '/' || i < f / 2) ? c : CH[Math.floor(Math.random() * CH.length)]; }).join('');
+      if (++f > text.length * 2) { clearInterval(timer); el.textContent = text; }
+    }, 28);
+  }
+
+  function setTog() { tog.textContent = compact ? '[+]' : '[–]'; tog.setAttribute('aria-expanded', String(!compact)); }
+
+  function apply(d, c) {
+    if (d === docked && c === compact) return;
+    if (anim) anim.cancel();
+    const h0 = box.offsetHeight, was = compact;
+    docked = d; compact = c;
+    box.classList.toggle('docked', d); box.classList.toggle('compact', c);
+    if (c !== was) { scramble(label, c ? L_MIN : L_FULL); setTog(); }
+    const h1 = box.offsetHeight;
+    if (!reduce && h0 !== h1 && box.animate) {
+      box.style.overflow = 'hidden';
+      anim = box.animate([{ height: h0 + 'px' }, { height: h1 + 'px' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      anim.onfinish = anim.oncancel = function () { box.style.overflow = ''; anim = null; };
     }
-}
+  }
 
-// 移除 Steam BBCode，並處理摘要
-function summarize(raw) {
-    const plain = String(raw || '')
-        .replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    if (!plain) return 'NO_DESCRIPTION_AVAILABLE.';
-    const chars = Array.from(plain);
-    return chars.length > 85 ? chars.slice(0, 85).join('') + '...' : plain;
-}
+  function update() {
+    ticking = false;
+    // 使用精準計算取代複雜變數，確保 CSS 貼齊
+    const headerH = window.innerWidth >= 640 ? 68 : 60;
+    const depth = headerH - sent.getBoundingClientRect().top;
+    const d = depth >= -1; 
+    if (pin && Math.abs(window.scrollY - pinY) > 160) pin = null;
+    let c = compact ? depth > 4 : depth > 24;
+    if (pin === 'open') c = false; else if (pin === 'closed') c = true;
+    apply(d, d && c);
+  }
 
-// ---------- 主流程 ----------
-
-async function fetchAndGenerateCards() {
-    try {
-        console.log("正在從 Steam 取得作者所有的模組清單...");
-
-        const missing = [];
-        if (!API_KEY) missing.push('STEAM_API_KEY（應放在 Secrets）');
-        if (!STEAM_ID) missing.push('STEAM_ID（應放在 Variables）');
-        if (missing.length > 0) {
-            throw new Error(`缺少設定：${missing.join('、')}。請檢查 Settings → Secrets and variables。`);
-        }
-
-        // 1. 取得名下所有工作坊項目 ID
-        const listParams = new URLSearchParams({
-            key: API_KEY,
-            steamid: STEAM_ID,
-            appid: APP_ID,
-            numperpage: '100',
-            page: '1',
-        });
-        const listRes = await fetch(
-            `https://api.steampowered.com/IPublishedFileService/GetUserFiles/v1/?${listParams}`,
-            { signal: AbortSignal.timeout(30000) }
-        );
-        if (!listRes.ok) throw new Error(`Steam API 連線失敗 (狀態碼: ${listRes.status})`);
-        
-        const listData = await listRes.json();
-        if (!listData.response || !listData.response.publishedfiledetails) {
-            console.log("找不到模組或 API 錯誤，保留現有頁面。");
-            return;
-        }
-
-        const modIds = listData.response.publishedfiledetails.map(mod => mod.publishedfileid);
-        if (modIds.length === 0) {
-            console.log("目前沒有上傳任何模組，保留現有頁面。");
-            return;
-        }
-
-        // 2. 取得詳細數據
-        console.log(`找到 ${modIds.length} 個模組，正在獲取詳細數據...`);
-        const formData = new URLSearchParams();
-        formData.append('itemcount', modIds.length);
-        modIds.forEach((id, index) => formData.append(`publishedfileids[${index}]`, id));
-
-        const detailsRes = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
-            method: 'POST',
-            body: formData,
-            signal: AbortSignal.timeout(30000)
-        });
-        if (!detailsRes.ok) throw new Error(`Steam 詳細資料 API 失敗 (狀態碼: ${detailsRes.status})`);
-        
-        const detailsData = await detailsRes.json();
-        const details = detailsData?.response?.publishedfiledetails;
-        if (!Array.isArray(details)) throw new Error("詳細資料格式異常，已中止，未修改網頁。");
-
-        // 只公開：成功取得(result=1)、公開(visibility=0)、未被下架的項目
-        const publicMods = details.filter(m => m.result === 1 && m.visibility === 0 && !m.banned);
-        if (publicMods.length === 0) {
-            console.log("沒有可公開的模組，保留現有頁面。");
-            return;
-        }
-
-        // 3. 組合全新終端機 HTML 模板
-        let cardsHTML = '';
-
-        publicMods.forEach(mod => {
-            const title = escapeHtml(mod.title || 'UNKNOWN_ENTITY');
-            const rawDesc = mod.description || '';
-            const cleanDesc = escapeHtml(summarize(rawDesc));
-            const fullDescEscaped = escapeHtml(rawDesc.replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '').replace(/\s+/g, ' ').trim());
-            
-            const imgUrl = safeHttpsUrl(mod.preview_url);
-            const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${encodeURIComponent(mod.publishedfileid)}`;
-            const subs = Number(mod.subscriptions) || 0;
-            const favs = Number(mod.favorited) || 0;
-            
-            const updated = new Date((Number(mod.time_updated) || 0) * 1000);
-            const dateStr = isNaN(updated) ? 'UNKNOWN' : updated.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
-
-            // 提取標籤與 RimWorld 版本
-            const allTags = (mod.tags || []).map(t => t.tag);
-            const versions = allTags.filter(t => /^\d+\.\d+$/.test(t));
-            const tags = allTags.filter(t => !/^\d+\.\d+$/.test(t));
-
-            // 將資料轉成屬性格式，供給 index.html 的搜尋系統使用
-            const tagsJson = escapeHtml(JSON.stringify(tags));
-            const versionsJson = escapeHtml(JSON.stringify(versions));
-            const searchIndex = escapeHtml(`${title} ${fullDescEscaped} ${allTags.join(' ')}`.toLowerCase());
-
-            const figure = imgUrl
-                ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover filter grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300" referrerpolicy="no-referrer" loading="lazy">`
-                : `<div class="w-full h-full bg-black flex items-center justify-center text-[#3f3f46] font-mono text-xs">NO_IMAGE</div>`;
-
-            cardsHTML += `
-            <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer" 
-                     data-mod-card 
-                     data-title="${title}" 
-                     data-meta="MODIFIED: ${dateStr} // FAV: ${favs} // SUB: ${subs}" 
-                     data-img="${imgUrl}" 
-                     data-url="${url}" 
-                     data-tags="${tagsJson}" 
-                     data-versions="${versionsJson}" 
-                     data-full="${fullDescEscaped}" 
-                     data-search="${searchIndex}">
-                
-                <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-50"></div>
-                    ${figure}
-                </figure>
-                
-                <div class="p-4 sm:p-5 flex flex-col flex-grow bg-[#050608]">
-                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: ${mod.publishedfileid}</div>
-                    <h2 class="text-sm font-bold text-white mb-2 uppercase leading-tight" style="font-family: 'Inter', sans-serif;">${title}</h2>
-                    
-                    <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">FAV: ${favs}</span>
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">SUB: ${subs}</span>
-                    </div>
-                    
-                    <p class="text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono">
-                        > ${cleanDesc}
-                    </p>
-                    
-                    <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
-                        <span>${dateStr}</span>
-                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity">ACCESS -></span>
-                    </div>
-                </div>
-            </article>
-            `;
-        });
-
-        // 4. 寫入 index.html
-        if (!fs.existsSync('index.html')) {
-            throw new Error("找不到 index.html 檔案！請確認檔案名稱是否正確且位於專案最外層。");
-        }
-
-        let html = fs.readFileSync('index.html', 'utf8');
-
-        if (!html.includes('<!-- CARDS_START -->
-
-            <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer" 
-                     data-mod-card 
-                     data-title="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》" 
-                     data-meta="MODIFIED: 2026.10.08 // FAV: 13 // SUB: 31" 
-                     data-img="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/" 
-                     data-url="https://steamcommunity.com/sharedfiles/filedetails/?id=3812133334" 
-                     data-tags="[&quot;Mod&quot;]" 
-                     data-versions="[&quot;1.6&quot;]" 
-                     data-full="&quot;I sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleeding. Another got a concussion from a falling tree. Meanwhile, my grazing cow ate toxic flora and dropped dead.&quot; Make the wilderness dangerous again. Harvesting, grazing, and woodcutting now carry a very small, unpredictable risk of accidents. No warnings, just RimWorld. [ Human: Harvest Allergy ] - Colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500). - Reduces breathing and manipulation. Recovers naturally in 1-2 days. - Grants antibodies for 3-5 days after recovery (allergy chance reduced by 90%). [ Animal: Grazing Poison ] - Animals have a 0.08% chance per bite to ingest toxic flora (including wild animals). - Outcomes upon poisoning: 80% Mild Gastroenteritis: Vomiting, sluggishness. Recovers in half a day. 10% Neurotoxin: Triggers a manhunter rampage. Recovers in 12-24 hours. 10% Lethal Toxin: Condition worsens daily, fatal in 2 days; requires vet care to suppress. - Grants adaptation for 3-5 days after recovery (poison chance reduced by 80%). [ Woodcutting Accidents ] - Axe Slip: Colonists may cut themselves while chopping trees, causing bleeding and potential infection. - Tree Fall: Falling trees may crush pawns; 30% chance to hit the head, causing concussions or knockout. Sends an alert. - Accident chance decreases with Plant skill (Lv.0 1% -&gt; Lv.20 0.2%). - Accident records remain in the health tab and disappear after 15-30 days. [ Settings ] - All 4 events can be toggled individually. - All probabilities are adjustable via sliders. - Safe to add to existing save games. Bug Reports &amp; Feedback If you encounter any bugs or have suggestions for improvement, please let me know in the comments. Thanks! Thanks Tynan and the RimWorld Team: For making an incredible, endlessly classical game. Brrainz (Harmony): Without his foundational library, half of what we build wouldn&#39;t even be possible. https://raw.githubusercontent.com/nanaformoss/img/refs/heads/main/IMG_7546.jpeg ↑ click here ↑ 「我叫小人去砍點木頭蓋床，結果斧頭手滑割傷大出血，另一隻被樹幹砸到腦震盪；放出去吃草的牛還吃到毒草直接猝死。」 讓野外的植物不再人畜無害。採收、啃草、砍樹的瞬間，都有極小的機率出事，事前沒有徵兆。 【人類：採收過敏】 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次） 過敏會降低呼吸與操作能力，1～2 天後自然痊癒 痊癒後的 3～5 天內有抗體，再次過敏的機率降為原本的 10% 【動物：啃草中毒】 動物每啃一口草，有 0.08% 機率吃到毒草（野生動物也會） 中毒後依機率分成三種結果： 80% 輕微腸胃炎：嘔吐、行動遲緩，半天內自行康復 10% 神經毒素：陷入狂暴並攻擊周圍生物，約半天到一天後恢復 10% 劇毒：毒素持續惡化，約兩天致死；需獸醫治療才能壓制 中毒過的動物有 3～5 天適應期，期間中毒機率降為原本的 20% 【砍樹意外】 斧頭打滑：砍樹時可能割傷自己，會流血，處理不當會感染 被樹砸中：倒木可能砸傷小人；30% 機率砸中頭部造成腦震盪或昏厥，並觸發警示 意外機率隨種植技能遞減（0 級 1% → 20 級 0.2%） 意外會在健康分頁留下一則紀錄，15～30 天後消失 【設定】 四項功能可各自開關，所有機率都能用拉桿調整 可只重設單一分頁，或一次還原所有預設值 可在存檔進行中途加入 回報與建議 如果在使用時發現任何問題或優化建議，歡迎隨時在下方留言回報 特別感謝 Tynan 與 RimWorld 團隊： 感謝打造了這款無比精彩，且讓人深陷其中的經典作品 Brrainz (Harmony 作者)： 感謝他提供的核心套件，支撐起了整個 Mod 生態系的運作" 
-                     data-search="green hazard: toxic flora and woodcutting《綠色殺機：毒草與伐木》 &amp;quot;i sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleeding. another got a concussion from a falling tree. meanwhile, my grazing cow ate toxic flora and dropped dead.&amp;quot; make the wilderness dangerous again. harvesting, grazing, and woodcutting now carry a very small, unpredictable risk of accidents. no warnings, just rimworld. [ human: harvest allergy ] - colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500). - reduces breathing and manipulation. recovers naturally in 1-2 days. - grants antibodies for 3-5 days after recovery (allergy chance reduced by 90%). [ animal: grazing poison ] - animals have a 0.08% chance per bite to ingest toxic flora (including wild animals). - outcomes upon poisoning: 80% mild gastroenteritis: vomiting, sluggishness. recovers in half a day. 10% neurotoxin: triggers a manhunter rampage. recovers in 12-24 hours. 10% lethal toxin: condition worsens daily, fatal in 2 days; requires vet care to suppress. - grants adaptation for 3-5 days after recovery (poison chance reduced by 80%). [ woodcutting accidents ] - axe slip: colonists may cut themselves while chopping trees, causing bleeding and potential infection. - tree fall: falling trees may crush pawns; 30% chance to hit the head, causing concussions or knockout. sends an alert. - accident chance decreases with plant skill (lv.0 1% -&amp;gt; lv.20 0.2%). - accident records remain in the health tab and disappear after 15-30 days. [ settings ] - all 4 events can be toggled individually. - all probabilities are adjustable via sliders. - safe to add to existing save games. bug reports &amp;amp; feedback if you encounter any bugs or have suggestions for improvement, please let me know in the comments. thanks! thanks tynan and the rimworld team: for making an incredible, endlessly classical game. brrainz (harmony): without his foundational library, half of what we build wouldn&amp;#39;t even be possible. https://raw.githubusercontent.com/nanaformoss/img/refs/heads/main/img_7546.jpeg ↑ click here ↑ 「我叫小人去砍點木頭蓋床，結果斧頭手滑割傷大出血，另一隻被樹幹砸到腦震盪；放出去吃草的牛還吃到毒草直接猝死。」 讓野外的植物不再人畜無害。採收、啃草、砍樹的瞬間，都有極小的機率出事，事前沒有徵兆。 【人類：採收過敏】 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次） 過敏會降低呼吸與操作能力，1～2 天後自然痊癒 痊癒後的 3～5 天內有抗體，再次過敏的機率降為原本的 10% 【動物：啃草中毒】 動物每啃一口草，有 0.08% 機率吃到毒草（野生動物也會） 中毒後依機率分成三種結果： 80% 輕微腸胃炎：嘔吐、行動遲緩，半天內自行康復 10% 神經毒素：陷入狂暴並攻擊周圍生物，約半天到一天後恢復 10% 劇毒：毒素持續惡化，約兩天致死；需獸醫治療才能壓制 中毒過的動物有 3～5 天適應期，期間中毒機率降為原本的 20% 【砍樹意外】 斧頭打滑：砍樹時可能割傷自己，會流血，處理不當會感染 被樹砸中：倒木可能砸傷小人；30% 機率砸中頭部造成腦震盪或昏厥，並觸發警示 意外機率隨種植技能遞減（0 級 1% → 20 級 0.2%） 意外會在健康分頁留下一則紀錄，15～30 天後消失 【設定】 四項功能可各自開關，所有機率都能用拉桿調整 可只重設單一分頁，或一次還原所有預設值 可在存檔進行中途加入 回報與建議 如果在使用時發現任何問題或優化建議，歡迎隨時在下方留言回報 特別感謝 tynan 與 rimworld 團隊： 感謝打造了這款無比精彩，且讓人深陷其中的經典作品 brrainz (harmony 作者)： 感謝他提供的核心套件，支撐起了整個 mod 生態系的運作 mod 1.6">
-                
-                <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-20"></div>
-                    <img src="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/" alt="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">
-                </figure>
-                
-                <div class="p-4 sm:p-5 flex flex-col flex-grow bg-[#050608]">
-                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: 3812133334</div>
-                    <h2 class="text-sm font-bold text-white mb-2 uppercase leading-tight" style="font-family: 'Inter', sans-serif;">Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》</h2>
-                    
-                    <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">FAV: 13</span>
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">SUB: 31</span>
-                    </div>
-                    
-                    <p class="text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono">
-                        > &quot;I sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleed...
-                    </p>
-                    
-                    <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
-                        <span>2026.10.08</span>
-                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity">ACCESS -></span>
-                    </div>
-                </div>
-            </article>
-            
-            <!-- CARDS_END -->')) {
-            throw new Error("在 index.html 中找不到 <!-- CARDS_START --> 或 <!-- CARDS_END --> 標記，無法替換內容！");
-        }
-
-        html = html.replace(
-            /<!-- CARDS_START -->[\s\S]*?<!-- CARDS_END -->/,
-            () => `<!-- CARDS_START -->\n${cardsHTML}\n            <!-- CARDS_END -->`
-        );
-        fs.writeFileSync('index.html', html, 'utf8');
-
-        console.log(`✅ 網頁自動化更新完成！共 ${publicMods.length} 個模組。`);
-
-    } catch (error) {
-        console.error("❌ 更新失敗:", error.message);
-        process.exit(1);
-    }
-}
-
-fetchAndGenerateCards();
+  tog.addEventListener('click', function () { pin = compact ? 'open' : 'closed'; pinY = window.scrollY; update(); });
+  addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+  label.textContent = L_FULL; setTog(); update();
+})();
+</script>
+</body>
+</html>

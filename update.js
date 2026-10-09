@@ -118,6 +118,7 @@ async function fetchAndGenerateCards() {
             const versionsJson = escapeHtml(JSON.stringify(versions));
             const searchIndex = escapeHtml(`${title} ${fullDescEscaped} ${allTags.join(' ')}`.toLowerCase());
 
+            // 這裡移除了灰階屬性，讓圖片保持原本的色彩，只保留滑鼠移過去微微變亮的互動感
             const figure = imgUrl
                 ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">`
                 : `<div class="w-full h-full bg-black flex items-center justify-center text-[#3f3f46] font-mono text-xs">NO_IMAGE</div>`;
