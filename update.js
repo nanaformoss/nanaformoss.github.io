@@ -93,7 +93,7 @@ async function fetchAndGenerateCards() {
             return;
         }
 
-        // 3. 組合全新終端機 HTML 模板 (已移除灰階濾鏡，保持全彩)
+        // 3. 組合全新終端機 HTML 模板 (已黑化並補上 data 標籤)
         let cardsHTML = '';
 
         publicMods.forEach(mod => {
@@ -118,9 +118,8 @@ async function fetchAndGenerateCards() {
             const versionsJson = escapeHtml(JSON.stringify(versions));
             const searchIndex = escapeHtml(`${title} ${fullDescEscaped} ${allTags.join(' ')}`.toLowerCase());
 
-            // 這裡移除了灰階屬性，讓圖片保持原本的色彩，只保留滑鼠移過去微微變亮的互動感
             const figure = imgUrl
-                ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">`
+                ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover filter grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300" referrerpolicy="no-referrer" loading="lazy">`
                 : `<div class="w-full h-full bg-black flex items-center justify-center text-[#3f3f46] font-mono text-xs">NO_IMAGE</div>`;
 
             cardsHTML += `
@@ -136,7 +135,7 @@ async function fetchAndGenerateCards() {
                      data-search="${searchIndex}">
                 
                 <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-20"></div>
+                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-50"></div>
                     ${figure}
                 </figure>
                 
