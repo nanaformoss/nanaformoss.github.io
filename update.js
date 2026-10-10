@@ -7,21 +7,26 @@ const APP_ID = '294100'; // RimWorld
 
 // ================= 可自行調整的設定 =================
 const LIMITS = {
-    en: { summary: 480, full: 2500 },  // 卡片小字介紹 / 彈窗內文 的字數上限（超過會在行尾截斷）
+    en: { summary: 480, full: 2500 },  // 卡片小字介紹 / 彈窗內文 的字數上限
     zh: { summary: 260, full: 1300 },
 };
 
-// 這些「標題」所在的段落會整段被丟掉（不分大小寫）
+// 這些「標題」所在的段落會整段被丟掉（完美過濾圖二那些不需要的區塊）
 const NOISE_HEADING = new RegExp('^(?:' + [
     'change\\s*-?\\s*logs?', 'update\\s*-?\\s*logs?', 'updates?', 'patch\\s*notes?',
     'version\\s*history', 'credits?', 'special\\s*thanks', 'thanks', 'donat\\w*',
     'support\\s*me', 'support\\s*the\\s*author', 'follow\\s*me', 'socials?',
+    'settings?', 'options?', 'bug\\s*reports?', 'feedback', 'faq', 'q&a',
     '更新(?:日誌|日志|紀錄|记录|內容|内容)?', '版本(?:紀錄|记录|歷史|历史)',
-    '鳴謝|致謝|感謝|贊助|捐贈|捐赠|打賞|打赏',
+    '鳴謝|致謝|感謝|特別感謝|贊助|捐贈|捐赠|打賞|打赏',
+    '設定|设置|選項|选项', '回報與建議|回報|建议|反饋|反馈|bug回報'
 ].join('|') + ')$', 'i');
 
-// 含這些關鍵字的「單行」會被丟掉（贊助 / 社群宣傳）
+// 含這些關鍵字的「單行」會被丟掉
 const DROP_LINE = /(patreon|ko-?fi|afdian|paypal|discord|buy\s*me\s*a\s*coffee|愛發電|爱发电|藍新|赞助|贊助|打賞|打赏|訂閱我|关注我|追蹤我)/i;
+
+// 出現在摘要前方的無意義引導文字（自動跳過）
+const NOISE_SNIPPET = /click\s*here|點擊這裡|点击这里/i;
 // ====================================================
 
 // ---------- 安全輔助函式 ----------
@@ -33,11 +38,9 @@ function escapeHtml(s) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
-// 放進 HTML 屬性：同時保留換行
 function attr(s) {
     return escapeHtml(s).replace(/\n/g, '&#10;');
 }
-
 function safeHttpsUrl(u) {
     try {
         const parsed = new URL(String(u));
@@ -48,28 +51,26 @@ function safeHttpsUrl(u) {
 }
 
 // ---------- 說明文字處理 ----------
-// 純文字標題：【標題】 或 [ Title ]
 const H_PLAIN = [/^【\s*([^】]+?)\s*】$/, /^\[\s+(.+?)\s+\]$/];
 
-// 1) BBCode / 純文字 -> 結構化行（h 標題 / li 條列(depth 0|1) / p 段落）
 function parseDescription(raw) {
     let s = String(raw || '').replace(/\r\n?/g, '\n');
 
-    s = s.replace(/\[(img|previewyoutube|video|youtube)(?:=[^\]]*)?\][\s\S]*?\[\/\1\]/gi, '\n'); // 圖片/影片
-    s = s.replace(/\[url=[^\]]*\]([\s\S]*?)\[\/url\]/gi, '$1');                                   // 連結只留文字
-    s = s.replace(/\[url\][\s\S]*?\[\/url\]/gi, '');
+    s = s.replace(/\[(img\vert{}previewyoutube\vert{}video\vert{}youtube)(?:=[^\]]*)?\][\s\S]*?\[\/\1\]/gi, '\n'); 
+    s = s.replace(/\[url=[^\]]*\]([\s\S]*?)\[\/url\]/gi, '$1');                                   
+    s = s.replace(/[url][\s\S]*?\[\/url\]/gi, '');
     s = s.replace(/\[h([1-3])\]([\s\S]*?)\[\/h\1\]/gi, (_, n, t) => '\n\u0001' + t.replace(/\s*\n\s*/g, ' ') + '\n');
-    s = s.replace(/\[hr\]\s*\[\/hr\]|\[hr\]/gi, '\n\n');
-    let depth = 0; // 追蹤巢狀 [list]
+    s = s.replace(/[hr]\s*\[\/hr\]|[hr]/gi, '\n\n');
+    let depth = 0; 
     s = s.replace(/\[(\/?)o?list\]|\[\*\]/gi, (m, close) => {
         if (m === '[*]') return '\n\u0002' + Math.max(depth - 1, 0);
         if (close) { depth = Math.max(depth - 1, 0); return '\n'; }
         depth++; return '\n';
     });
-    s = s.replace(/\[\/?(?:table|tr)(?:=[^\]]*)?\]/gi, '\n');
-    s = s.replace(/\[\/?(?:td|th)(?:=[^\]]*)?\]/gi, ' ');
-    s = s.replace(/\[\/?(?:b|i|u|s|strike|spoiler|noparse|code|quote|color|size|font|center|left|right|justify|p)(?:=[^\]]*)?\]/gi, '');
-    s = s.replace(/https?:\/\/\S+/gi, '');                                                        // 裸網址
+    s = s.replace(/\[\/?(?:table\vert{}tr)(?:=[^\]]*)?\]/gi, '\n');
+    s = s.replace(/\[\/?(?:td\vert{}th)(?:=[^\]]*)?\]/gi, ' ');
+    s = s.replace(/\[\/?(?:b\vert{}i\vert{}u\vert{}s\vert{}strike\vert{}spoiler\vert{}noparse\vert{}code\vert{}quote\vert{}color\vert{}size\vert{}font\vert{}center\vert{}left\vert{}right\vert{}justify\vert{}p)(?:=[^\]]*)?\]/gi, '');
+    s = s.replace(/https?:\/\/\S+/gi, '');                                                        
 
     const rows = [];
     for (let line of s.split('\n')) {
@@ -78,12 +79,11 @@ function parseDescription(raw) {
         if (line.startsWith('\u0001')) { type = 'h'; line = line.slice(1).trim(); }
         else if (line.startsWith('\u0002')) { type = 'li'; d = Number(line[1]) || 0; line = line.slice(2).trim(); }
         line = line.replace(/[ \t\u3000]+/g, ' ');
-        if (!/[\p{L}\p{N}]/u.test(line)) { rows.push({ type: 'blank', text: '' }); continue; } // 純符號/分隔線
+        if (!/[\p{L}\p{N}]/u.test(line)) { rows.push({ type: 'blank', text: '' }); continue; } 
         if (DROP_LINE.test(line)) continue;
         rows.push({ type, text: line, depth: d });
     }
 
-    // 純文字的標題與條列（作者直接打 【標題】、「* 」、「- 」、「80% …」的情況）
     let prevLi = null;
     for (const r of rows) {
         if (r.type === 'blank') continue;
@@ -106,9 +106,8 @@ function parseDescription(raw) {
         }
     }
 
-    // 丟掉 Changelog / 贊助 / 鳴謝 之類的段落
     const out = [];
-    let skip = null; // 'h' = 直到下一個標題；'p' = 直到下一個空行
+    let skip = null; 
     for (const r of rows) {
         if (r.type === 'blank') { if (skip === 'p') skip = null; continue; }
         const core = r.text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
@@ -120,7 +119,6 @@ function parseDescription(raw) {
     return out;
 }
 
-// 2) 依「每行的文字」分成英文 / 中文
 const CJK_RE = /[\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff]/g;
 function classifyLine(text) {
     const cjk = (text.match(CJK_RE) || []).length;
@@ -134,7 +132,7 @@ function tidy(lines) {
     const out = [];
     for (let i = 0; i < lines.length; i++) {
         const ln = lines[i];
-        if (ln.type === 'h' && (!lines[i + 1] || lines[i + 1].type === 'h')) continue; // 沒內容的標題
+        if (ln.type === 'h' && (!lines[i + 1] || lines[i + 1].type === 'h')) continue; 
         const prev = out[out.length - 1];
         if (prev && prev.type === ln.type && prev.text === ln.text) continue;
         out.push(ln);
@@ -142,7 +140,6 @@ function tidy(lines) {
     return out;
 }
 
-// 第一個標題之前 = 卡片上的「小字介紹」；第一個標題起 = 點開後的「詳細內容」
 function splitIntro(lines) {
     const i = lines.findIndex(l => l.type === 'h');
     if (i === -1) return { intro: lines, body: lines };
@@ -167,14 +164,18 @@ function linesToText(lines, max) {
     return parts.join('\n');
 }
 
-// 卡片小字：回傳「每行一個字串」的陣列
+// 升級版卡片小字抓取器：無差別抓取最前面真正有意義的文字
 function introToLines(intro, body, max) {
-    let src = intro.filter(l => l.type !== 'h');
-    if (!src.length) src = body.filter(l => l.type !== 'h').slice(0, 2);
+    // 把文章開頭所有內容合併，過濾掉長度小於5的無意義短句、以及含 click here 的引導語
+    let src = [...intro, ...body].filter(l => 
+        l.text.replace(/[^\p{L}\p{N}]/gu, '').length > 5 &&
+        !NOISE_SNIPPET.test(l.text)
+    );
+    
     const out = [];
     let len = 0;
     for (const l of src) {
-        const t = l.text;
+        let t = l.text;
         if (len + t.length > max) {
             const room = max - len;
             if (room > 20) out.push(Array.from(t).slice(0, room).join('') + '...');
@@ -183,11 +184,12 @@ function introToLines(intro, body, max) {
         }
         out.push(t);
         len += t.length;
+        if (out.length >= 3) break; // 最多取 3 行作為卡片小字
     }
     return out;
 }
 
-function buildDescriptions(raw) {
+function buildDescriptions(modId, raw) {
     const lines = parseDescription(raw);
     let en = [], zh = [], enOwn = 0, zhOwn = 0;
     for (const ln of lines) {
@@ -197,15 +199,16 @@ function buildDescriptions(raw) {
         if (k === 'en') enOwn++;
         if (k === 'zh') zhOwn++;
     }
-    // 只有一種語言時，兩邊都顯示那一種
     if (!enOwn) en = zh;
     if (!zhOwn) zh = en;
     en = tidy(en); zh = tidy(zh);
 
     const E = splitIntro(en), Z = splitIntro(zh);
     const none = { en: ['NO_DESCRIPTION_AVAILABLE.'], zh: ['尚無說明。'] };
-    const introEn = introToLines(E.intro, E.body, LIMITS.en.summary);
-    const introZh = introToLines(Z.intro, Z.body, LIMITS.zh.summary);
+    
+    let introEn = introToLines(E.intro, E.body, LIMITS.en.summary);
+    let introZh = introToLines(Z.intro, Z.body, LIMITS.zh.summary);
+
     return {
         introEn: introEn.length ? introEn : none.en,
         introZh: introZh.length ? introZh : none.zh,
@@ -226,17 +229,8 @@ async function fetchAndGenerateCards() {
             throw new Error(`缺少設定：${missing.join('、')}。請檢查 Settings → Secrets and variables。`);
         }
 
-        const listParams = new URLSearchParams({
-            key: API_KEY,
-            steamid: STEAM_ID,
-            appid: APP_ID,
-            numperpage: '100',
-            page: '1',
-        });
-        const listRes = await fetch(
-            `https://api.steampowered.com/IPublishedFileService/GetUserFiles/v1/?${listParams}`,
-            { signal: AbortSignal.timeout(30000) }
-        );
+        const listParams = new URLSearchParams({ key: API_KEY, steamid: STEAM_ID, appid: APP_ID, numperpage: '100', page: '1' });
+        const listRes = await fetch(`https://api.steampowered.com/IPublishedFileService/GetUserFiles/v1/?${listParams}`, { signal: AbortSignal.timeout(30000) });
         if (!listRes.ok) throw new Error(`Steam API 連線失敗 (狀態碼: ${listRes.status})`);
 
         const listData = await listRes.json();
@@ -246,21 +240,14 @@ async function fetchAndGenerateCards() {
         }
 
         const modIds = listData.response.publishedfiledetails.map(mod => mod.publishedfileid);
-        if (modIds.length === 0) {
-            console.log("目前沒有上傳任何模組，保留現有頁面。");
-            return;
-        }
+        if (modIds.length === 0) return;
 
         console.log(`找到 ${modIds.length} 個模組，正在獲取詳細數據...`);
         const formData = new URLSearchParams();
         formData.append('itemcount', modIds.length);
         modIds.forEach((id, index) => formData.append(`publishedfileids[${index}]`, id));
 
-        const detailsRes = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
-            method: 'POST',
-            body: formData,
-            signal: AbortSignal.timeout(30000)
-        });
+        const detailsRes = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', { method: 'POST', body: formData, signal: AbortSignal.timeout(30000) });
         if (!detailsRes.ok) throw new Error(`Steam 詳細資料 API 失敗 (狀態碼: ${detailsRes.status})`);
 
         const detailsData = await detailsRes.json();
@@ -268,17 +255,15 @@ async function fetchAndGenerateCards() {
         if (!Array.isArray(details)) throw new Error("詳細資料格式異常，已中止，未修改網頁。");
 
         const publicMods = details.filter(m => m.result === 1 && m.visibility === 0 && !m.banned);
-        if (publicMods.length === 0) {
-            console.log("沒有可公開的模組，保留現有頁面。");
-            return;
-        }
+        if (publicMods.length === 0) return;
 
         let cardsHTML = '';
 
         publicMods.forEach(mod => {
             const rawTitle = mod.title || 'UNKNOWN_ENTITY';
             const title = escapeHtml(rawTitle);
-            const d = buildDescriptions(mod.description || '');
+            
+            const d = buildDescriptions(mod.publishedfileid, mod.description || '');
 
             const imgUrl = safeHttpsUrl(mod.preview_url);
             const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${encodeURIComponent(mod.publishedfileid)}`;
@@ -286,9 +271,7 @@ async function fetchAndGenerateCards() {
             const favs = Number(mod.favorited) || 0;
 
             const ts = Number(mod.time_updated) || 0;
-            const dateStr = ts
-                ? new Date(ts * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).replace(/-/g, '.')
-                : 'UNKNOWN';
+            const dateStr = ts ? new Date(ts * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).replace(/-/g, '.') : 'UNKNOWN';
 
             const allTags = (mod.tags || []).map(t => t.tag);
             const versions = allTags.filter(t => /^\d+\.\d+$/.test(t));
