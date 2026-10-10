@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="dark">
+<html lang="en" data-lang="en" class="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NANA_ARCHIVE // RIMWORLD_MODS</title>
+<script>try{var _l=localStorage.getItem('nana_lang');document.documentElement.dataset.lang=(_l==='zh'?'zh':'en');}catch(e){}</script>
 
 <!-- 核心套件 -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -63,6 +64,24 @@ input[type="checkbox"]:checked::after { content: '×'; position: absolute; top: 
 .modal-x:hover { background: #fff; }
 [hidden] { display: none !important; }
 
+/* 彈窗內可獨立滾動，不會帶動背景頁面 */
+.modal { overscroll-behavior: contain; }
+.modal-box { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+/* 彈窗說明文字排版 */
+#m-desc { overflow-wrap: anywhere; }
+#m-desc .d-h { color: var(--accent-amber); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin: 1rem 0 .35rem; }
+#m-desc .d-h:first-child { margin-top: 0; }
+#m-desc .d-p { margin: 0 0 .6rem; }
+#m-desc .d-li { position: relative; padding-left: 1rem; margin: 0 0 .3rem; }
+#m-desc .d-li::before { content: '›'; position: absolute; left: .15rem; color: var(--accent-amber); }
+
+/* 語言切換 */
+html[data-lang="en"] .lang-zh, html[data-lang="zh"] .lang-en { display: none !important; }
+#lang-toggle { flex: none; border: 1px solid var(--border-box); background: #090a0f; color: #717684; font: 700 11px 'JetBrains Mono', monospace; letter-spacing: .05em; padding: .4rem .65rem; cursor: pointer; white-space: nowrap; transition: border-color .15s, color .15s; }
+#lang-toggle:hover { border-color: var(--accent-amber); }
+html[data-lang="en"] #lang-toggle [data-l="en"], html[data-lang="zh"] #lang-toggle [data-l="zh"] { color: var(--accent-amber); }
+
 /* 閃爍游標 */
 .cursor-blink { animation: blink 1s step-end infinite; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -117,7 +136,7 @@ input[type="checkbox"]:checked::after { content: '×'; position: absolute; top: 
 </head>
 <body class="min-h-screen pb-16">
 
-<div id="iab-warning" class="z-50 relative border-b border-[#ef4444]">[ALERT] 系統偵測到社群內建瀏覽器。為確保支付跳轉正常，請點選右上角改以外部瀏覽器開啟。</div>
+<div id="iab-warning" data-i18n="iab" class="z-50 relative border-b border-[#ef4444]">[ALERT] In-app browser detected. Please open this page in your external browser so payments work correctly.</div>
 
 <!-- 頂部標題列 (高度固定化、padding統一 px-5 md:px-10 保證對齊) -->
 <header class="w-full h-[60px] sm:h-[68px] border-b border-[#1d2027] bg-[#050608] sticky top-0 z-50">
@@ -127,6 +146,7 @@ input[type="checkbox"]:checked::after { content: '×'; position: absolute; top: 
       <div class="h-3 sm:h-4 w-[1px] bg-[#2a2e39] flex-shrink-0"></div>
       <span class="text-[#717684] text-[10px] sm:text-xs font-mono uppercase tracking-widest whitespace-nowrap truncate">RIMWORLD_MODS</span>
     </div>
+    <button id="lang-toggle" type="button" aria-label="Switch language / 切換語言"><span data-l="en">EN</span><span class="opacity-40 mx-1">/</span><span data-l="zh">繁中</span></button>
   </div>
 </header>
 
@@ -145,23 +165,23 @@ input[type="checkbox"]:checked::after { content: '×'; position: absolute; top: 
     
     <div class="sup-desc mb-5 sm:mb-6">
       <div class="text-[11px] sm:text-xs text-[#a1a1aa] leading-relaxed font-mono space-y-1">
-        <p>&gt; SYSTEM MAINTENANCE REQUIRES RESOURCES.</p>
-        <p>&gt; INITIATE TRANSFER TO ACCELERATE DEVELOPMENT CYCLES.</p>
+        <p data-i18n="sup1">&gt; SYSTEM MAINTENANCE REQUIRES RESOURCES.</p>
+        <p data-i18n="sup2">&gt; INITIATE TRANSFER TO ACCELERATE DEVELOPMENT CYCLES.</p>
       </div>
     </div>
 
     <div class="sup-grid grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
       <a class="support-link flex flex-col justify-between border border-[#d97706] text-[#d97706] hover:bg-[#d97706]/10 p-3.5 sm:p-4 text-xs font-mono transition-colors min-h-[84px] sm:min-h-[96px] group" href="你的藍新EPG結帳網址" target="_blank" rel="noopener noreferrer">
-        <div class="space-y-1"><span class="t-full block font-bold">&gt; LOCAL_NODE [TW]</span><span class="t-short hidden font-bold">&gt; TW</span><span class="sup-sub block text-[10px] opacity-75">(CREDIT/ATM)</span></div>
-        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform">EXECUTE -&gt;</div>
+        <div class="space-y-1"><span class="t-full block font-bold" data-i18n="tw_full">&gt; LOCAL_NODE [TW]</span><span class="t-short hidden font-bold">&gt; TW</span><span class="sup-sub block text-[10px] opacity-75" data-i18n="tw_sub">(CREDIT/ATM)</span></div>
+        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform" data-i18n="exec">EXECUTE -&gt;</div>
       </a>
       <a class="support-link flex flex-col justify-between border border-[#65a30d] text-[#65a30d] hover:bg-[#65a30d]/10 p-3.5 sm:p-4 text-xs font-mono transition-colors min-h-[84px] sm:min-h-[96px] group" href="https://afdian.net/a/nanaformoss" target="_blank" rel="noopener noreferrer">
-        <div class="space-y-1"><span class="t-full block font-bold">&gt; MAINLAND_NODE [CN]</span><span class="t-short hidden font-bold">&gt; CN</span><span class="sup-sub block text-[10px] opacity-75">(ALIPAY/WECHAT)</span></div>
-        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform">EXECUTE -&gt;</div>
+        <div class="space-y-1"><span class="t-full block font-bold" data-i18n="cn_full">&gt; MAINLAND_NODE [CN]</span><span class="t-short hidden font-bold">&gt; CN</span><span class="sup-sub block text-[10px] opacity-75" data-i18n="cn_sub">(ALIPAY/WECHAT)</span></div>
+        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform" data-i18n="exec">EXECUTE -&gt;</div>
       </a>
       <a class="support-link flex flex-col justify-between border border-[#06b6d4] text-[#06b6d4] hover:bg-[#06b6d4]/10 p-3.5 sm:p-4 text-xs font-mono transition-colors min-h-[84px] sm:min-h-[96px] group" href="https://ko-fi.com/nanaformoss" target="_blank" rel="noopener noreferrer">
-        <div class="space-y-1"><span class="t-full block font-bold">&gt; GLOBAL_NODE [INTL]</span><span class="t-short hidden font-bold">&gt; INTL</span><span class="sup-sub block text-[10px] opacity-75">(PAYPAL/CARD)</span></div>
-        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform">EXECUTE -&gt;</div>
+        <div class="space-y-1"><span class="t-full block font-bold" data-i18n="intl_full">&gt; GLOBAL_NODE [INTL]</span><span class="t-short hidden font-bold">&gt; INTL</span><span class="sup-sub block text-[10px] opacity-75" data-i18n="intl_sub">(PAYPAL/CARD)</span></div>
+        <div class="sup-exec text-right w-full mt-2 sm:mt-3 font-bold group-hover:translate-x-1 transition-transform" data-i18n="exec">EXECUTE -&gt;</div>
       </a>
     </div>
     <button id="sup-toggle" class="sup-toggle" type="button" aria-expanded="true"></button>
@@ -169,77 +189,39 @@ input[type="checkbox"]:checked::after { content: '×'; position: absolute; top: 
 
   <section class="mb-6 sm:mb-8 w-full">
     <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
-      <div class="relative flex-grow sm:max-w-md w-full"><span class="absolute left-3 top-2.5 text-[#d97706] font-bold">&gt;</span><input id="q" type="text" placeholder="QUERY_RECORDS..." class="term-input w-full py-2 pl-8 pr-4 text-xs uppercase font-mono tracking-wider transition-colors box-border"></div>
+      <div class="relative flex-grow sm:max-w-md w-full"><span class="absolute left-3 top-2.5 text-[#d97706] font-bold">&gt;</span><input id="q" type="text" placeholder="QUERY_RECORDS..." data-i18n-ph="ph" class="term-input w-full py-2 pl-8 pr-4 text-xs uppercase font-mono tracking-wider transition-colors box-border"></div>
       <div class="flex gap-2 text-xs font-mono">
-        <div class="relative flex-1 sm:flex-initial"><button id="btn-tags" aria-expanded="false" class="term-btn w-full sm:w-auto px-4 py-2 transition-colors uppercase">[ TAGS ]</button><div id="panel-tags" class="panel" hidden></div></div>
-        <div class="relative flex-1 sm:flex-initial"><button id="btn-versions" aria-expanded="false" class="term-btn w-full sm:w-auto px-4 py-2 transition-colors uppercase">[ VERSIONS ]</button><div id="panel-versions" class="panel" hidden></div></div>
+        <div class="relative flex-1 sm:flex-initial"><button id="btn-tags" aria-expanded="false" class="term-btn w-full sm:w-auto px-4 py-2 transition-colors uppercase" data-i18n="tags">[ TAGS ]</button><div id="panel-tags" class="panel" hidden></div></div>
+        <div class="relative flex-1 sm:flex-initial"><button id="btn-versions" aria-expanded="false" class="term-btn w-full sm:w-auto px-4 py-2 transition-colors uppercase" data-i18n="versions">[ VERSIONS ]</button><div id="panel-versions" class="panel" hidden></div></div>
       </div>
     </div>
     <p id="count" class="text-[11px] text-[#525866] mt-3.5 uppercase tracking-widest font-mono">MATCHING_RECORDS: 0</p>
   </section>
 
   <section id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 pt-1 w-full">
-    <!-- CARDS_START -->
-
-            <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer" 
-                     data-mod-card 
-                     data-title="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》" 
-                     data-meta="MODIFIED: 2026.10.08 // FAV: 13 // SUB: 31" 
-                     data-img="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/" 
-                     data-url="https://steamcommunity.com/sharedfiles/filedetails/?id=3812133334" 
-                     data-tags="[&quot;Mod&quot;]" 
-                     data-versions="[&quot;1.6&quot;]" 
-                     data-full="&quot;I sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleeding. Another got a concussion from a falling tree. Meanwhile, my grazing cow ate toxic flora and dropped dead.&quot; Make the wilderness dangerous again. Harvesting, grazing, and woodcutting now carry a very small, unpredictable risk of accidents. No warnings, just RimWorld. [ Human: Harvest Allergy ] - Colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500). - Reduces breathing and manipulation. Recovers naturally in 1-2 days. - Grants antibodies for 3-5 days after recovery (allergy chance reduced by 90%). [ Animal: Grazing Poison ] - Animals have a 0.08% chance per bite to ingest toxic flora (including wild animals). - Outcomes upon poisoning: 80% Mild Gastroenteritis: Vomiting, sluggishness. Recovers in half a day. 10% Neurotoxin: Triggers a manhunter rampage. Recovers in 12-24 hours. 10% Lethal Toxin: Condition worsens daily, fatal in 2 days; requires vet care to suppress. - Grants adaptation for 3-5 days after recovery (poison chance reduced by 80%). [ Woodcutting Accidents ] - Axe Slip: Colonists may cut themselves while chopping trees, causing bleeding and potential infection. - Tree Fall: Falling trees may crush pawns; 30% chance to hit the head, causing concussions or knockout. Sends an alert. - Accident chance decreases with Plant skill (Lv.0 1% -&gt; Lv.20 0.2%). - Accident records remain in the health tab and disappear after 15-30 days. [ Settings ] - All 4 events can be toggled individually. - All probabilities are adjustable via sliders. - Safe to add to existing save games. Bug Reports &amp; Feedback If you encounter any bugs or have suggestions for improvement, please let me know in the comments. Thanks! Thanks Tynan and the RimWorld Team: For making an incredible, endlessly classical game. Brrainz (Harmony): Without his foundational library, half of what we build wouldn&#39;t even be possible. https://raw.githubusercontent.com/nanaformoss/img/refs/heads/main/IMG_7546.jpeg ↑ click here ↑ 「我叫小人去砍點木頭蓋床，結果斧頭手滑割傷大出血，另一隻被樹幹砸到腦震盪；放出去吃草的牛還吃到毒草直接猝死。」 讓野外的植物不再人畜無害。採收、啃草、砍樹的瞬間，都有極小的機率出事，事前沒有徵兆。 【人類：採收過敏】 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次） 過敏會降低呼吸與操作能力，1～2 天後自然痊癒 痊癒後的 3～5 天內有抗體，再次過敏的機率降為原本的 10% 【動物：啃草中毒】 動物每啃一口草，有 0.08% 機率吃到毒草（野生動物也會） 中毒後依機率分成三種結果： 80% 輕微腸胃炎：嘔吐、行動遲緩，半天內自行康復 10% 神經毒素：陷入狂暴並攻擊周圍生物，約半天到一天後恢復 10% 劇毒：毒素持續惡化，約兩天致死；需獸醫治療才能壓制 中毒過的動物有 3～5 天適應期，期間中毒機率降為原本的 20% 【砍樹意外】 斧頭打滑：砍樹時可能割傷自己，會流血，處理不當會感染 被樹砸中：倒木可能砸傷小人；30% 機率砸中頭部造成腦震盪或昏厥，並觸發警示 意外機率隨種植技能遞減（0 級 1% → 20 級 0.2%） 意外會在健康分頁留下一則紀錄，15～30 天後消失 【設定】 四項功能可各自開關，所有機率都能用拉桿調整 可只重設單一分頁，或一次還原所有預設值 可在存檔進行中途加入 回報與建議 如果在使用時發現任何問題或優化建議，歡迎隨時在下方留言回報 特別感謝 Tynan 與 RimWorld 團隊： 感謝打造了這款無比精彩，且讓人深陷其中的經典作品 Brrainz (Harmony 作者)： 感謝他提供的核心套件，支撐起了整個 Mod 生態系的運作" 
-                     data-search="green hazard: toxic flora and woodcutting《綠色殺機：毒草與伐木》 &amp;quot;i sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleeding. another got a concussion from a falling tree. meanwhile, my grazing cow ate toxic flora and dropped dead.&amp;quot; make the wilderness dangerous again. harvesting, grazing, and woodcutting now carry a very small, unpredictable risk of accidents. no warnings, just rimworld. [ human: harvest allergy ] - colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500). - reduces breathing and manipulation. recovers naturally in 1-2 days. - grants antibodies for 3-5 days after recovery (allergy chance reduced by 90%). [ animal: grazing poison ] - animals have a 0.08% chance per bite to ingest toxic flora (including wild animals). - outcomes upon poisoning: 80% mild gastroenteritis: vomiting, sluggishness. recovers in half a day. 10% neurotoxin: triggers a manhunter rampage. recovers in 12-24 hours. 10% lethal toxin: condition worsens daily, fatal in 2 days; requires vet care to suppress. - grants adaptation for 3-5 days after recovery (poison chance reduced by 80%). [ woodcutting accidents ] - axe slip: colonists may cut themselves while chopping trees, causing bleeding and potential infection. - tree fall: falling trees may crush pawns; 30% chance to hit the head, causing concussions or knockout. sends an alert. - accident chance decreases with plant skill (lv.0 1% -&amp;gt; lv.20 0.2%). - accident records remain in the health tab and disappear after 15-30 days. [ settings ] - all 4 events can be toggled individually. - all probabilities are adjustable via sliders. - safe to add to existing save games. bug reports &amp;amp; feedback if you encounter any bugs or have suggestions for improvement, please let me know in the comments. thanks! thanks tynan and the rimworld team: for making an incredible, endlessly classical game. brrainz (harmony): without his foundational library, half of what we build wouldn&amp;#39;t even be possible. https://raw.githubusercontent.com/nanaformoss/img/refs/heads/main/img_7546.jpeg ↑ click here ↑ 「我叫小人去砍點木頭蓋床，結果斧頭手滑割傷大出血，另一隻被樹幹砸到腦震盪；放出去吃草的牛還吃到毒草直接猝死。」 讓野外的植物不再人畜無害。採收、啃草、砍樹的瞬間，都有極小的機率出事，事前沒有徵兆。 【人類：採收過敏】 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次） 過敏會降低呼吸與操作能力，1～2 天後自然痊癒 痊癒後的 3～5 天內有抗體，再次過敏的機率降為原本的 10% 【動物：啃草中毒】 動物每啃一口草，有 0.08% 機率吃到毒草（野生動物也會） 中毒後依機率分成三種結果： 80% 輕微腸胃炎：嘔吐、行動遲緩，半天內自行康復 10% 神經毒素：陷入狂暴並攻擊周圍生物，約半天到一天後恢復 10% 劇毒：毒素持續惡化，約兩天致死；需獸醫治療才能壓制 中毒過的動物有 3～5 天適應期，期間中毒機率降為原本的 20% 【砍樹意外】 斧頭打滑：砍樹時可能割傷自己，會流血，處理不當會感染 被樹砸中：倒木可能砸傷小人；30% 機率砸中頭部造成腦震盪或昏厥，並觸發警示 意外機率隨種植技能遞減（0 級 1% → 20 級 0.2%） 意外會在健康分頁留下一則紀錄，15～30 天後消失 【設定】 四項功能可各自開關，所有機率都能用拉桿調整 可只重設單一分頁，或一次還原所有預設值 可在存檔進行中途加入 回報與建議 如果在使用時發現任何問題或優化建議，歡迎隨時在下方留言回報 特別感謝 tynan 與 rimworld 團隊： 感謝打造了這款無比精彩，且讓人深陷其中的經典作品 brrainz (harmony 作者)： 感謝他提供的核心套件，支撐起了整個 mod 生態系的運作 mod 1.6">
-                
-                <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-20"></div>
-                    <img src="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/" alt="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">
-                </figure>
-                
-                <div class="p-4 sm:p-5 flex flex-col flex-grow bg-[#050608]">
-                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: 3812133334</div>
-                    <h2 class="text-sm font-bold text-white mb-2 uppercase leading-tight" style="font-family: 'Inter', sans-serif;">Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》</h2>
-                    
-                    <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">FAV: 13</span>
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">SUB: 31</span>
-                    </div>
-                    
-                    <p class="text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono">
-                        > &quot;I sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleed...
-                    </p>
-                    
-                    <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
-                        <span>2026.10.08</span>
-                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity">ACCESS -></span>
-                    </div>
-                </div>
-            </article>
-            
-            <!-- CARDS_END -->
+    <!-- CARDS_START --><!-- CARDS_END -->
     <article id="coming-soon" class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-75 hover:opacity-100 transition-opacity">
-      <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732]"><span class="text-xs font-bold text-[#d97706] tracking-[0.4em] cursor-blink">CLASSIFIED</span></figure>
+      <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732]"><span class="text-xs font-bold text-[#d97706] tracking-[0.4em] cursor-blink" data-i18n="cs_fig">CLASSIFIED</span></figure>
       <div class="p-4 sm:p-5 flex flex-col flex-grow">
-        <div class="text-[10px] text-[#525866] mb-1.5 uppercase font-mono">SYS.DAT // UNKNOWN</div><h2 class="text-sm font-bold text-white mb-2 uppercase" style="font-family: 'Inter', sans-serif;">[REDACTED_PROJECT]</h2>
-        <p class="text-xs text-[#717684] line-clamp-3 mb-4 font-mono leading-relaxed">&gt; INITIALIZING RECONSTRUCTION PROTOCOL...<br>&gt; CORE MECHANICS OVERHAUL IN PROGRESS.<br>&gt; AWAITING DEPLOYMENT.</p>
-        <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#d97706] uppercase flex justify-between font-mono"><span>STATUS: IN_DEV</span><span class="cursor-blink">_</span></div>
+        <div class="text-[10px] text-[#525866] mb-1.5 uppercase font-mono" data-i18n="cs_sys">SYS.DAT // UNKNOWN</div><h2 class="text-sm font-bold text-white mb-2 uppercase" style="font-family: 'Inter', sans-serif;" data-i18n="cs_title">[REDACTED_PROJECT]</h2>
+        <p class="text-xs text-[#717684] line-clamp-3 mb-4 font-mono leading-relaxed" style="white-space:pre-line" data-i18n="cs_desc">&gt; INITIALIZING RECONSTRUCTION PROTOCOL...&#10;&gt; CORE MECHANICS OVERHAUL IN PROGRESS.&#10;&gt; AWAITING DEPLOYMENT.</p>
+        <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#d97706] uppercase flex justify-between font-mono"><span data-i18n="cs_status">STATUS: IN_DEV</span><span class="cursor-blink">_</span></div>
       </div>
     </article>
   </section>
 
 </main>
 
-<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
-  <div class="modal-box p-1">
+<div id="modal" class="modal" data-lenis-prevent hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="modal-box p-1" data-lenis-prevent>
     <button id="m-close" class="modal-x" aria-label="Close">✕</button>
     <div class="border border-[#1d2027] bg-[#090a0f]">
-      <img id="m-img" alt="" class="w-full aspect-video object-cover filter grayscale opacity-80 border-b border-[#1d2027]">
+      <img id="m-img" alt="" class="w-full aspect-video object-cover border-b border-[#1d2027]">
       <div class="p-5 sm:p-6">
         <h2 id="m-title" class="text-base sm:text-lg font-bold mb-2 uppercase text-[#d97706]" style="font-family: 'Inter', sans-serif;"></h2>
         <p id="m-meta" class="text-[10px] text-[#525866] mb-4 tracking-widest font-mono"></p>
-        <div id="m-chips" class="flex flex-wrap gap-1.5 sm:gap-2 mb-4"></div><p id="m-desc" class="text-xs text-[#a1a1aa] mb-6 leading-relaxed font-mono" style="white-space:pre-line"></p>
-        <div class="flex justify-between items-center border-t border-[#1d2027] pt-4"><a id="m-steam" class="border border-[#d4d4d8] text-[#d4d4d8] hover:bg-[#d4d4d8] hover:text-black px-4 py-2 text-xs font-mono font-bold uppercase transition-colors" target="_blank" rel="noopener noreferrer">ACCESS STEAM -&gt;</a></div>
+        <div id="m-chips" class="flex flex-wrap gap-1.5 sm:gap-2 mb-4"></div><div id="m-desc" class="text-xs text-[#a1a1aa] mb-6 leading-relaxed font-mono"></div>
+        <div class="flex justify-between items-center border-t border-[#1d2027] pt-4"><a id="m-steam" class="border border-[#d4d4d8] text-[#d4d4d8] hover:bg-[#d4d4d8] hover:text-black px-4 py-2 text-xs font-mono font-bold uppercase transition-colors" target="_blank" rel="noopener noreferrer" data-i18n="steam">ACCESS STEAM -&gt;</a></div>
       </div>
     </div>
   </div>
@@ -255,7 +237,66 @@ function checkInAppBrowser() {
 }
 checkInAppBrowser();
 
-try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true, smoothTouch: false }); const raf = function (time) { lenis.raf(time); requestAnimationFrame(raf); }; requestAnimationFrame(raf); } } catch (e) {}
+/* ===== i18n：預設英文，右上角按鈕切換 EN / 繁中 ===== */
+(function () {
+  const I18N = {
+    en: {
+      iab: '[ALERT] In-app browser detected. Please open this page in your external browser so payments work correctly.',
+      sup1: '> SYSTEM MAINTENANCE REQUIRES RESOURCES.',
+      sup2: '> INITIATE TRANSFER TO ACCELERATE DEVELOPMENT CYCLES.',
+      sup_full: '// SUPPORT_PROTOCOL', sup_min: '// SUPPORT',
+      tw_full: '> LOCAL_NODE [TW]', tw_sub: '(CREDIT/ATM)',
+      cn_full: '> MAINLAND_NODE [CN]', cn_sub: '(ALIPAY/WECHAT)',
+      intl_full: '> GLOBAL_NODE [INTL]', intl_sub: '(PAYPAL/CARD)',
+      exec: 'EXECUTE ->',
+      ph: 'QUERY_RECORDS...', tags: '[ TAGS ]', versions: '[ VERSIONS ]', no_data: 'NO_DATA',
+      count: 'MATCHING_RECORDS: ',
+      cs_fig: 'CLASSIFIED', cs_sys: 'SYS.DAT // UNKNOWN', cs_title: '[REDACTED_PROJECT]',
+      cs_desc: '> INITIALIZING RECONSTRUCTION PROTOCOL...\n> CORE MECHANICS OVERHAUL IN PROGRESS.\n> AWAITING DEPLOYMENT.',
+      cs_status: 'STATUS: IN_DEV',
+      fav: 'FAV', sub: 'SUB', modified: 'MODIFIED', access: 'ACCESS ->', steam: 'ACCESS STEAM ->'
+    },
+    zh: {
+      iab: '[警告] 偵測到社群內建瀏覽器。為確保支付跳轉正常，請點選右上角改以外部瀏覽器開啟。',
+      sup1: '> 系統維護需要資源。',
+      sup2: '> 啟動贊助，加速開發進度。',
+      sup_full: '// 贊助通道', sup_min: '// 贊助',
+      tw_full: '> 台灣通道 [TW]', tw_sub: '(信用卡/ATM)',
+      cn_full: '> 中國大陸通道 [CN]', cn_sub: '(支付寶/微信)',
+      intl_full: '> 國際通道 [INTL]', intl_sub: '(PAYPAL/信用卡)',
+      exec: '前往 ->',
+      ph: '搜尋模組...', tags: '[ 標籤 ]', versions: '[ 版本 ]', no_data: '無資料',
+      count: '符合筆數：',
+      cs_fig: '機密', cs_sys: 'SYS.DAT // 未知', cs_title: '[機密專案]',
+      cs_desc: '> 重建協定初始化中...\n> 核心機制全面改造進行中。\n> 等待部署。',
+      cs_status: '狀態：開發中',
+      fav: '收藏', sub: '訂閱', modified: '更新', access: '查看 ->', steam: '前往 STEAM ->'
+    }
+  };
+  let lang = document.documentElement.dataset.lang === 'zh' ? 'zh' : 'en';
+  window.NANA = {
+    get lang() { return lang; },
+    t: function (k) { return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+  };
+  function apply() {
+    document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = NANA.t(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function (el) { el.placeholder = NANA.t(el.dataset.i18nPh); });
+  }
+  function setLang(l) {
+    lang = l;
+    document.documentElement.dataset.lang = l;
+    document.documentElement.lang = l === 'zh' ? 'zh-TW' : 'en';
+    try { localStorage.setItem('nana_lang', l); } catch (e) {}
+    apply();
+    document.dispatchEvent(new CustomEvent('langchange', { detail: l }));
+  }
+  const btn = document.getElementById('lang-toggle');
+  if (btn) btn.addEventListener('click', function () { setLang(lang === 'en' ? 'zh' : 'en'); });
+  document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+  apply();
+})();
+
+try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true, smoothTouch: false }); window.__lenis = lenis; const raf = function (time) { lenis.raf(time); requestAnimationFrame(raf); }; requestAnimationFrame(raf); } } catch (e) {}
 
 (function () {
   const ok = [].slice.call(document.querySelectorAll('#support .support-link')).filter(function (a) {
@@ -266,38 +307,68 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
 })();
 
 (function () {
-  const grid = document.getElementById('cards-grid'), m = document.getElementById('modal'); let lastFocused = null;
-  function $(id) { return document.getElementById(id); } function parse(c, k) { try { return JSON.parse(c.dataset[k] || '[]'); } catch (e) { return []; } }
+  const grid = document.getElementById('cards-grid'), m = document.getElementById('modal'); let lastFocused = null, current = null;
+  function $(id) { return document.getElementById(id); }
+  function parse(c, k) { try { return JSON.parse(c.dataset[k] || '[]'); } catch (e) { return []; } }
+  function renderDesc(box, text) {
+    box.textContent = '';
+    String(text || '').split('\n').forEach(function (line) {
+      line = line.trim(); if (!line) return;
+      const el = document.createElement('div');
+      if (line.indexOf('// ') === 0) { el.className = 'd-h'; el.textContent = line.slice(3); }
+      else if (line.indexOf('• ') === 0) { el.className = 'd-li'; el.textContent = line.slice(2); }
+      else { el.className = 'd-p'; el.textContent = line; }
+      box.appendChild(el);
+    });
+  }
+  function fill(c) {
+    $('m-title').textContent = c.dataset.title || '';
+    let meta = c.dataset.meta || '';
+    if (c.dataset.date) meta = NANA.t('modified') + ': ' + c.dataset.date + ' // ' + NANA.t('fav') + ': ' + (c.dataset.fav || 0) + ' // ' + NANA.t('sub') + ': ' + (c.dataset.sub || 0);
+    $('m-meta').textContent = meta;
+    const txt = (NANA.lang === 'zh' ? c.dataset.fullZh : c.dataset.fullEn) || c.dataset.fullEn || c.dataset.fullZh || c.dataset.full || '';
+    renderDesc($('m-desc'), txt);
+  }
   function open(c) {
-    lastFocused = document.activeElement; const src = c.dataset.img || '', img = $('m-img'); img.hidden = !/^https:\/\//i.test(src); img.src = img.hidden ? '' : src; img.alt = c.dataset.title || '';
-    $('m-title').textContent = c.dataset.title || ''; $('m-meta').textContent = c.dataset.meta || ''; $('m-desc').textContent = c.dataset.full || '';
+    lastFocused = document.activeElement; current = c;
+    const src = c.dataset.img || '', img = $('m-img'); img.hidden = !/^https:\/\//i.test(src); img.src = img.hidden ? '' : src; img.alt = c.dataset.title || '';
+    fill(c);
     const chips = $('m-chips'); chips.textContent = '';
     parse(c, 'versions').concat(parse(c, 'tags')).forEach(function (t) { const s = document.createElement('span'); s.className = 'text-[10px] bg-[#1d2027] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#2a2e39] font-mono'; s.textContent = t; chips.appendChild(s); });
     const st = $('m-steam'), url = c.dataset.url || ''; st.hidden = !/^https:\/\/steamcommunity\.com\//.test(url); st.href = st.hidden ? '#' : url;
-    m.hidden = false; document.body.style.overflow = 'hidden'; $('m-close').focus();
+    m.hidden = false; document.body.style.overflow = 'hidden';
+    if (window.__lenis) window.__lenis.stop();   // 彈窗開啟時，鎖住背景的平滑滾動
+    m.querySelector('.modal-box').scrollTop = 0;
+    $('m-close').focus();
   }
-  function close() { m.hidden = true; document.body.style.overflow = ''; if (lastFocused && lastFocused.focus) lastFocused.focus(); }
+  function close() {
+    m.hidden = true; current = null; document.body.style.overflow = '';
+    if (window.__lenis) window.__lenis.start();
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
   if (grid) { grid.addEventListener('click', function (e) { const c = e.target.closest('[data-mod-card]'); if (c && !e.target.closest('a')) open(c); }); grid.addEventListener('keydown', function (e) { const c = e.target.closest('[data-mod-card]'); if (c && e.target === c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(c); } }); }
   $('m-close').onclick = close; m.addEventListener('click', function (e) { if (e.target === m) close(); }); document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !m.hidden) close(); });
+  document.addEventListener('langchange', function () { if (!m.hidden && current) fill(current); });
 })();
 
 (function () {
   let cards = [].slice.call(document.querySelectorAll('[data-mod-card]'));
-  const soon = document.getElementById('coming-soon'), q = document.getElementById('q'), count = document.getElementById('count'); const sel = { tags: new Set(), versions: new Set() };
+  const soon = document.getElementById('coming-soon'), q = document.getElementById('q'), count = document.getElementById('count'); const sel = { tags: new Set(), versions: new Set() }; let lastShown = 0;
   function parse(c, k) { try { return JSON.parse(c.dataset[k] || '[]'); } catch (e) { return []; } } function closeAll() { document.querySelectorAll('.panel').forEach(function (p) { p.hidden = true; }); }
   function build(key) {
     const btn = document.getElementById('btn-' + key), panel = document.getElementById('panel-' + key), all = new Set();
     cards.forEach(function (c) { parse(c, key).forEach(function (v) { all.add(v); }); }); const list = Array.from(all).sort(function (a, b) { return b.localeCompare(a, undefined, { numeric: true }); }); panel.innerHTML = '';
-    if (!list.length) { const p = document.createElement('p'); p.className = 'text-xs text-[#525866] p-2'; p.textContent = 'NO_DATA'; panel.appendChild(p); }
+    if (!list.length) { const p = document.createElement('p'); p.className = 'text-xs text-[#525866] p-2'; p.dataset.i18n = 'no_data'; p.textContent = NANA.t('no_data'); panel.appendChild(p); }
     list.forEach(function (v) { const l = document.createElement('label'), i = document.createElement('input'); i.type = 'checkbox'; i.onchange = function () { if (i.checked) sel[key].add(v); else sel[key].delete(v); run(); }; l.appendChild(i); l.appendChild(document.createTextNode(v)); panel.appendChild(l); });
     btn.onclick = function (e) { e.stopPropagation(); const open = panel.hidden; closeAll(); panel.hidden = !open; btn.setAttribute('aria-expanded', String(open)); }; panel.onclick = function (e) { e.stopPropagation(); };
   }
   function run() {
     const term = q.value.trim().toLowerCase(); let shown = 0;
     cards.forEach(function (c) { const ok = (!term || (c.dataset.search || '').indexOf(term) > -1) && (!sel.tags.size || parse(c, 'tags').some(function (t) { return sel.tags.has(t); })) && (!sel.versions.size || parse(c, 'versions').some(function (v) { return sel.versions.has(v); })); c.hidden = !ok; if (ok) shown++; });
-    if (soon) soon.hidden = !!(term || sel.tags.size || sel.versions.size); if (count) count.textContent = 'MATCHING_RECORDS: ' + shown;
+    if (soon) soon.hidden = !!(term || sel.tags.size || sel.versions.size); lastShown = shown; if (count) count.textContent = NANA.t('count') + shown;
   }
   document.addEventListener('click', closeAll); document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); }); if (q) q.addEventListener('input', run);
+  document.addEventListener('langchange', function () { if (count) count.textContent = NANA.t('count') + lastShown; });
   setTimeout(function() { cards = [].slice.call(document.querySelectorAll('[data-mod-card]')); build('tags'); build('versions'); run(); }, 300);
 })();
 
@@ -306,7 +377,6 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
   if (!box || box.style.display === 'none') return;
   const sent = document.getElementById('sup-sentinel'), label = document.getElementById('sup-label'), tog = document.getElementById('sup-toggle');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const L_FULL = '// SUPPORT_PROTOCOL', L_MIN = '// SUPPORT';
   let docked = false, compact = false, pin = null, pinY = 0, ticking = false, timer = null, anim = null;
 
   const CH = '!<>-_\\/[]{}=+*^?#01';
@@ -327,7 +397,7 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
     const h0 = box.offsetHeight, was = compact;
     docked = d; compact = c;
     box.classList.toggle('docked', d); box.classList.toggle('compact', c);
-    if (c !== was) { scramble(label, c ? L_MIN : L_FULL); setTog(); }
+    if (c !== was) { scramble(label, c ? NANA.t('sup_min') : NANA.t('sup_full')); setTog(); }
     const h1 = box.offsetHeight;
     if (!reduce && h0 !== h1 && box.animate) {
       box.style.overflow = 'hidden';
@@ -350,7 +420,8 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
 
   tog.addEventListener('click', function () { pin = compact ? 'open' : 'closed'; pinY = window.scrollY; update(); });
   addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
-  label.textContent = L_FULL; setTog(); update();
+  label.textContent = NANA.t('sup_full'); setTog(); update();
+  document.addEventListener('langchange', function () { label.textContent = compact ? NANA.t('sup_min') : NANA.t('sup_full'); });
 })();
 </script>
 </body>

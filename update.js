@@ -5,6 +5,25 @@ const API_KEY = process.env.STEAM_API_KEY;
 const STEAM_ID = process.env.STEAM_ID;
 const APP_ID = '294100'; // RimWorld
 
+// ================= 可自行調整的設定 =================
+const LIMITS = {
+    en: { summary: 110, full: 900 },  // 卡片摘要字數 / 彈窗內文字數上限
+    zh: { summary: 60,  full: 450 },
+};
+
+// 這些「標題」所在的段落會整段被丟掉（不分大小寫）
+const NOISE_HEADING = new RegExp('^(?:' + [
+    'change\\s*-?\\s*logs?', 'update\\s*-?\\s*logs?', 'updates?', 'patch\\s*notes?',
+    'version\\s*history', 'credits?', 'special\\s*thanks', 'thanks', 'donat\\w*',
+    'support\\s*me', 'support\\s*the\\s*author', 'follow\\s*me', 'socials?',
+    '更新(?:日誌|日志|紀錄|记录|內容|内容)?', '版本(?:紀錄|记录|歷史|历史)',
+    '鳴謝|致謝|感謝|贊助|捐贈|捐赠|打賞|打赏',
+].join('|') + ')$', 'i');
+
+// 含這些關鍵字的「單行」會被丟掉（贊助 / 社群宣傳）
+const DROP_LINE = /(patreon|ko-?fi|afdian|paypal|discord|buy\s*me\s*a\s*coffee|愛發電|爱发电|藍新|赞助|贊助|打賞|打赏|訂閱我|关注我|追蹤我)/i;
+// ====================================================
+
 // ---------- 安全輔助函式 ----------
 function escapeHtml(s) {
     return String(s ?? '')
@@ -13,6 +32,10 @@ function escapeHtml(s) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+// 放進 HTML 屬性：同時保留換行
+function attr(s) {
+    return escapeHtml(s).replace(/\n/g, '&#10;');
 }
 
 function safeHttpsUrl(u) {
@@ -24,14 +47,116 @@ function safeHttpsUrl(u) {
     }
 }
 
-function summarize(raw) {
-    const plain = String(raw || '')
-        .replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    if (!plain) return 'NO_DESCRIPTION_AVAILABLE.';
+// ---------- 說明文字處理 ----------
+// 1) BBCode -> 結構化行（h 標題 / li 條列 / p 段落）
+function parseDescription(raw) {
+    let s = String(raw || '').replace(/\r\n?/g, '\n');
+
+    s = s.replace(/\[(img|previewyoutube|video|youtube)(?:=[^\]]*)?\][\s\S]*?\[\/\1\]/gi, '\n'); // 圖片/影片
+    s = s.replace(/\[url=[^\]]*\]([\s\S]*?)\[\/url\]/gi, '$1');                                   // 連結只留文字
+    s = s.replace(/\[url\][\s\S]*?\[\/url\]/gi, '');
+    s = s.replace(/\[h([1-3])\]([\s\S]*?)\[\/h\1\]/gi, (_, n, t) => '\n\u0001' + t.replace(/\s*\n\s*/g, ' ') + '\n');
+    s = s.replace(/\[hr\]\s*\[\/hr\]|\[hr\]/gi, '\n\n');
+    s = s.replace(/\[\/?o?list\]/gi, '\n');
+    s = s.replace(/\[\*\]/g, '\n\u0002');
+    s = s.replace(/\[\/?(?:table|tr)(?:=[^\]]*)?\]/gi, '\n');
+    s = s.replace(/\[\/?(?:td|th)(?:=[^\]]*)?\]/gi, ' ');
+    s = s.replace(/\[\/?(?:b|i|u|s|strike|spoiler|noparse|code|quote|color|size|font|center|left|right|justify|p)(?:=[^\]]*)?\]/gi, '');
+    s = s.replace(/https?:\/\/\S+/gi, '');                                                        // 裸網址
+
+    const rows = [];
+    for (let line of s.split('\n')) {
+        line = line.trim();
+        let type = 'p';
+        if (line.startsWith('\u0001')) { type = 'h'; line = line.slice(1).trim(); }
+        else if (line.startsWith('\u0002')) { type = 'li'; line = line.slice(1).trim(); }
+        line = line.replace(/[ \t\u3000]+/g, ' ');
+        if (!/[\p{L}\p{N}]/u.test(line)) { rows.push({ type: 'blank', text: '' }); continue; } // 純符號/分隔線
+        if (DROP_LINE.test(line)) continue;
+        rows.push({ type, text: line });
+    }
+
+    // 丟掉 Changelog / 贊助 / 鳴謝 之類的段落
+    const out = [];
+    let skip = null; // 'h' = 直到下一個標題；'p' = 直到下一個空行
+    for (const r of rows) {
+        if (r.type === 'blank') { if (skip === 'p') skip = null; continue; }
+        const core = r.text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+        if (r.type === 'h') { skip = NOISE_HEADING.test(core) ? 'h' : null; if (skip) continue; }
+        else if (skip) continue;
+        else if (r.type === 'p' && NOISE_HEADING.test(core)) { skip = 'p'; continue; }
+        out.push(r);
+    }
+    return out;
+}
+
+// 2) 依「每行的文字」分成英文 / 中文
+const CJK_RE = /[\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff]/g;
+function classifyLine(text) {
+    const cjk = (text.match(CJK_RE) || []).length;
+    const latin = (text.match(/[A-Za-z]/g) || []).length;
+    if (!cjk && !latin) return 'both';
+    if (!cjk) return 'en';
+    return cjk * 3 >= latin ? 'zh' : 'en';
+}
+
+function tidy(lines) {
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+        const ln = lines[i];
+        if (ln.type === 'h' && (!lines[i + 1] || lines[i + 1].type === 'h')) continue; // 沒內容的標題
+        const prev = out[out.length - 1];
+        if (prev && prev.type === ln.type && prev.text === ln.text) continue;
+        out.push(ln);
+    }
+    return out;
+}
+
+function linesToText(lines, max) {
+    const parts = [];
+    let len = 0;
+    for (const ln of lines) {
+        const t = ln.type === 'h' ? `// ${ln.text}` : ln.type === 'li' ? `• ${ln.text}` : ln.text;
+        if (len + t.length > max) {
+            if (!parts.length) parts.push(Array.from(t).slice(0, max).join('') + '...');
+            else parts.push('...');
+            break;
+        }
+        parts.push(t);
+        len += t.length + 1;
+    }
+    return parts.join('\n');
+}
+
+function summarizeLines(lines, max) {
+    const body = lines.filter(l => l.type !== 'h');
+    const plain = (body.length ? body : lines).map(l => l.text).join(' ').replace(/\s+/g, ' ').trim();
     const chars = Array.from(plain);
-    return chars.length > 85 ? chars.slice(0, 85).join('') + '...' : plain;
+    return chars.length > max ? chars.slice(0, max).join('') + '...' : plain;
+}
+
+function buildDescriptions(raw) {
+    const lines = parseDescription(raw);
+    let en = [], zh = [], enOwn = 0, zhOwn = 0;
+    for (const ln of lines) {
+        const k = classifyLine(ln.text);
+        if (k !== 'zh') en.push(ln);
+        if (k !== 'en') zh.push(ln);
+        if (k === 'en') enOwn++;
+        if (k === 'zh') zhOwn++;
+    }
+    // 只有一種語言時，兩邊都顯示那一種
+    if (!enOwn) en = zh;
+    if (!zhOwn) zh = en;
+    en = tidy(en); zh = tidy(zh);
+
+    const none = { en: 'NO_DESCRIPTION_AVAILABLE.', zh: '尚無說明。' };
+    return {
+        sumEn: en.length ? summarizeLines(en, LIMITS.en.summary) : none.en,
+        sumZh: zh.length ? summarizeLines(zh, LIMITS.zh.summary) : none.zh,
+        fullEn: linesToText(en, LIMITS.en.full),
+        fullZh: linesToText(zh, LIMITS.zh.full),
+    };
 }
 
 // ---------- 主流程 ----------
@@ -58,7 +183,7 @@ async function fetchAndGenerateCards() {
             { signal: AbortSignal.timeout(30000) }
         );
         if (!listRes.ok) throw new Error(`Steam API 連線失敗 (狀態碼: ${listRes.status})`);
-        
+
         const listData = await listRes.json();
         if (!listData.response || !listData.response.publishedfiledetails) {
             console.log("找不到模組或 API 錯誤，保留現有頁面。");
@@ -82,7 +207,7 @@ async function fetchAndGenerateCards() {
             signal: AbortSignal.timeout(30000)
         });
         if (!detailsRes.ok) throw new Error(`Steam 詳細資料 API 失敗 (狀態碼: ${detailsRes.status})`);
-        
+
         const detailsData = await detailsRes.json();
         const details = detailsData?.response?.publishedfiledetails;
         if (!Array.isArray(details)) throw new Error("詳細資料格式異常，已中止，未修改網頁。");
@@ -93,75 +218,78 @@ async function fetchAndGenerateCards() {
             return;
         }
 
-        // 3. 組合全新終端機 HTML 模板 (已移除灰階濾鏡，保持全彩)
         let cardsHTML = '';
 
         publicMods.forEach(mod => {
-            const title = escapeHtml(mod.title || 'UNKNOWN_ENTITY');
-            const rawDesc = mod.description || '';
-            const cleanDesc = escapeHtml(summarize(rawDesc));
-            const fullDescEscaped = escapeHtml(rawDesc.replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, '').replace(/\s+/g, ' ').trim());
-            
+            const rawTitle = mod.title || 'UNKNOWN_ENTITY';
+            const title = escapeHtml(rawTitle);
+            const d = buildDescriptions(mod.description || '');
+
             const imgUrl = safeHttpsUrl(mod.preview_url);
             const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${encodeURIComponent(mod.publishedfileid)}`;
             const subs = Number(mod.subscriptions) || 0;
             const favs = Number(mod.favorited) || 0;
-            
-            const updated = new Date((Number(mod.time_updated) || 0) * 1000);
-            const dateStr = isNaN(updated) ? 'UNKNOWN' : updated.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
+
+            const ts = Number(mod.time_updated) || 0;
+            const dateStr = ts
+                ? new Date(ts * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).replace(/-/g, '.')
+                : 'UNKNOWN';
 
             const allTags = (mod.tags || []).map(t => t.tag);
             const versions = allTags.filter(t => /^\d+\.\d+$/.test(t));
             const tags = allTags.filter(t => !/^\d+\.\d+$/.test(t));
 
-            const tagsJson = escapeHtml(JSON.stringify(tags));
-            const versionsJson = escapeHtml(JSON.stringify(versions));
-            const searchIndex = escapeHtml(`${title} ${fullDescEscaped} ${allTags.join(' ')}`.toLowerCase());
+            const tagsJson = attr(JSON.stringify(tags));
+            const versionsJson = attr(JSON.stringify(versions));
+            const searchIndex = attr(`${rawTitle} ${d.fullEn} ${d.fullZh} ${allTags.join(' ')}`.toLowerCase().replace(/\s+/g, ' '));
 
             const figure = imgUrl
                 ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">`
                 : `<div class="w-full h-full bg-black flex items-center justify-center text-[#3f3f46] font-mono text-xs">NO_IMAGE</div>`;
 
+            const pClass = 'text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono';
+
             cardsHTML += `
-            <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer" 
-                     data-mod-card 
-                     data-title="${title}" 
-                     data-meta="MODIFIED: ${dateStr} // FAV: ${favs} // SUB: ${subs}" 
-                     data-img="${imgUrl}" 
-                     data-url="${url}" 
-                     data-tags="${tagsJson}" 
-                     data-versions="${versionsJson}" 
-                     data-full="${fullDescEscaped}" 
+            <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer"
+                     data-mod-card
+                     data-title="${title}"
+                     data-date="${dateStr}"
+                     data-fav="${favs}"
+                     data-sub="${subs}"
+                     data-img="${imgUrl}"
+                     data-url="${url}"
+                     data-tags="${tagsJson}"
+                     data-versions="${versionsJson}"
+                     data-full-en="${attr(d.fullEn)}"
+                     data-full-zh="${attr(d.fullZh)}"
                      data-search="${searchIndex}">
-                
+
                 <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
                     <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-20"></div>
                     ${figure}
                 </figure>
-                
+
                 <div class="p-4 sm:p-5 flex flex-col flex-grow bg-[#050608]">
-                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: ${mod.publishedfileid}</div>
+                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: ${escapeHtml(mod.publishedfileid)}</div>
                     <h2 class="text-sm font-bold text-white mb-2 uppercase leading-tight" style="font-family: 'Inter', sans-serif;">${title}</h2>
-                    
+
                     <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">FAV: ${favs}</span>
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]">SUB: ${subs}</span>
+                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="fav">FAV</span>: ${favs}</span>
+                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="sub">SUB</span>: ${subs}</span>
                     </div>
-                    
-                    <p class="text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono">
-                        > ${cleanDesc}
-                    </p>
-                    
+
+                    <p class="lang-en ${pClass}">&gt; ${escapeHtml(d.sumEn)}</p>
+                    <p class="lang-zh ${pClass}">&gt; ${escapeHtml(d.sumZh)}</p>
+
                     <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
                         <span>${dateStr}</span>
-                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity">ACCESS -></span>
+                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity" data-i18n="access">ACCESS -&gt;</span>
                     </div>
                 </div>
             </article>
             `;
         });
 
-        // 4. 寫入 index.html
         if (!fs.existsSync('index.html')) {
             throw new Error("找不到 index.html 檔案！請確認檔案名稱是否正確且位於專案最外層。");
         }
@@ -186,4 +314,8 @@ async function fetchAndGenerateCards() {
     }
 }
 
-fetchAndGenerateCards();
+if (require.main === module) {
+    fetchAndGenerateCards();
+} else {
+    module.exports = { parseDescription, buildDescriptions };
+}
