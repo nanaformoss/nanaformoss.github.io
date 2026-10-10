@@ -2,7 +2,7 @@
 <html lang="en" data-lang="en" class="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.75">
 <title>NANA_ARCHIVE // RIMWORLD_MODS</title>
 <script>try{var _l=localStorage.getItem('nana_lang');document.documentElement.dataset.lang=(_l==='zh'?'zh':'en');}catch(e){}</script>
 
@@ -22,9 +22,9 @@
   --text-main: #d4d4d8;
   
   /* 固定標題列高度，保證 100% 貼齊無縫隙 */
-  --header-h: 60px;
+  --header-h: 80px;
 }
-@media (min-width: 640px) { :root { --header-h: 68px; } }
+@media (min-width: 640px) { :root { --header-h: 90px; } }
 
 /* 防止手機橫向捲動破版 */
 html { overflow-x: hidden; width: 100%; overflow-anchor: none; }
@@ -147,13 +147,15 @@ html[data-lang="en"] #lang-toggle [data-l="en"], html[data-lang="zh"] #lang-togg
 .sup-box.compact .sup-toggle { position: static; flex: none; border: none; background: transparent; padding: 0.25rem; }
 </style>
 </head>
-<body class="min-h-screen pb-16">
+<!-- 修改後 (讓整個頁面變成垂直彈性佈局) -->
+<body class="min-h-screen flex flex-col">
 
 <div id="iab-warning" data-i18n="iab" class="z-50 relative border-b border-[#ef4444]">[ALERT] In-app browser detected. Please open this page in your external browser so payments work correctly.</div>
 
 <!-- 頂部標題列 (高度固定化、padding統一 px-5 md:px-10 保證對齊) -->
-<header class="w-full h-[60px] sm:h-[68px] border-b border-[#1d2027] bg-[#050608] sticky top-0 z-50">
-  <div class="h-full px-5 md:px-10 max-w-[1400px] mx-auto flex items-center justify-between gap-2">
+<!-- 修改後 (對應 CSS 變數加高) -->
+<header class="w-full h-[80px] sm:h-[90px] border-b border-[#1d2027] bg-[#050608] sticky top-0 z-50">
+  <div class="h-full px-5 md:px-10 max-w-[1400px] mx-auto w-full flex items-center justify-between gap-2">
     <div class="flex items-center gap-2 sm:gap-4 min-w-0">
       <h1 class="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-wider text-white whitespace-nowrap" style="font-family: 'Inter', sans-serif;">NANA_ARCHIVE</h1>
       <div class="h-3 sm:h-4 w-[1px] bg-[#2a2e39] flex-shrink-0"></div>
@@ -164,12 +166,14 @@ html[data-lang="en"] #lang-toggle [data-l="en"], html[data-lang="zh"] #lang-togg
 </header>
 
 <!-- 主內容區 (padding統一 px-5 md:px-10 保證邊界完美切齊) -->
-<main class="px-5 md:px-10 py-6 sm:py-8 md:py-10 max-w-[1400px] mx-auto w-full box-border">
+<!-- 修改後 (讓主內容自動伸展，把 Footer 往下推死，這樣圖二的網格就不會露出來) -->
+<main class="flex-grow px-5 md:px-10 py-6 sm:py-8 md:py-10 max-w-[1400px] mx-auto w-full box-border">
 
   <div id="sup-sentinel" aria-hidden="true" style="height:0"></div>
   
   <!-- 面板區 (內距統一 p-5 md:p-8) -->
-  <section id="support" class="sup-box mb-8 sm:mb-10 w-full border border-[#232732] bg-[#090a0f] p-5 md:p-8">
+  <!-- 修改後 (加入 mt-6 sm:mt-10 將框往下推) -->
+  <section id="support" class="sup-box mt-2 sm:mt-4 mb-8 sm:mb-10 w-full border border-[#232732] bg-[#090a0f] p-5 md:p-8">
     
     <!-- 標籤：完美定位。利用 -ml-2 抵銷 px-2 的內距，保證文字垂直對齊下方內文 -->
     <div id="sup-label" class="sup-label absolute -top-[9px] left-5 md:left-8 -ml-2 bg-[#090a0f] px-2 flex items-center h-[18px] text-[10px] sm:text-xs font-bold text-[#d97706] uppercase tracking-widest leading-none">
@@ -200,7 +204,7 @@ html[data-lang="en"] #lang-toggle [data-l="en"], html[data-lang="zh"] #lang-togg
     <button id="sup-toggle" class="sup-toggle" type="button" aria-expanded="true"></button>
   </section>
 
-  <section class="mb-6 sm:mb-8 w-full">
+  <section class="mt-4 sm:mt-6 mb-10 sm:mb-12 w-full relative">
     <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
       <div class="relative flex-grow sm:max-w-md w-full"><span class="absolute left-3 top-2.5 text-[#d97706] font-bold">&gt;</span><input id="q" type="text" placeholder="QUERY_RECORDS..." data-i18n-ph="ph" class="term-input w-full py-2 pl-8 pr-4 text-xs uppercase font-mono tracking-wider transition-colors box-border"></div>
       <div class="flex gap-2 text-xs font-mono">
@@ -212,47 +216,7 @@ html[data-lang="en"] #lang-toggle [data-l="en"], html[data-lang="zh"] #lang-togg
   </section>
 
   <section id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 pt-1 w-full">
-    <!-- CARDS_START -->
-
-            <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer"
-                     data-mod-card
-                     data-title="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》"
-                     data-date="2026.10.08"
-                     data-fav="13"
-                     data-sub="31"
-                     data-img="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/"
-                     data-url="https://steamcommunity.com/sharedfiles/filedetails/?id=3812133334"
-                     data-tags="[&quot;Mod&quot;]"
-                     data-versions="[&quot;1.6&quot;]"
-                     data-full-en="// Human: Harvest Allergy&#10;• Colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500).&#10;• Reduces breathing and manipulation. Recovers naturally in 1-2 days.&#10;• Grants antibodies for 3-5 days after recovery (allergy chance reduced by 90%).&#10;// Animal: Grazing Poison&#10;• Animals have a 0.08% chance per bite to ingest toxic flora (including wild animals).&#10;• Outcomes upon poisoning:&#10;• 80% Mild Gastroenteritis: Vomiting, sluggishness. Recovers in half a day.&#10;• 10% Neurotoxin: Triggers a manhunter rampage. Recovers in 12-24 hours.&#10;• 10% Lethal Toxin: Condition worsens daily, fatal in 2 days; requires vet care to suppress.&#10;• Grants adaptation for 3-5 days after recovery (poison chance reduced by 80%).&#10;// Woodcutting Accidents&#10;• Axe Slip: Colonists may cut themselves while chopping trees, causing bleeding and potential infection.&#10;• Tree Fall: Falling trees may crush pawns; 30% chance to hit the head, causing concussions or knockout. Sends an alert.&#10;• Accident chance decreases with Plant skill (Lv.0 1% -&gt; Lv.20 0.2%).&#10;• Accident records remain in the health tab and disappear after 15-30 days.&#10;// Bug Reports &amp; Feedback&#10;If you encounter any bugs or have suggestions for improvement, please let me know in the comments. Thanks!"
-                     data-full-zh="// 人類：採收過敏&#10;• 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次）&#10;• 過敏會降低呼吸與操作能力，1～2 天後自然痊癒&#10;• 痊癒後的 3～5 天內有抗體，再次過敏的機率降為原本的 10%&#10;// 動物：啃草中毒&#10;• 動物每啃一口草，有 0.08% 機率吃到毒草（野生動物也會）&#10;• 中毒後依機率分成三種結果：&#10;◦ 80% 輕微腸胃炎：嘔吐、行動遲緩，半天內自行康復&#10;◦ 10% 神經毒素：陷入狂暴並攻擊周圍生物，約半天到一天後恢復&#10;◦ 10% 劇毒：毒素持續惡化，約兩天致死；需獸醫治療才能壓制&#10;• 中毒過的動物有 3～5 天適應期，期間中毒機率降為原本的 20%&#10;// 砍樹意外&#10;• 斧頭打滑：砍樹時可能割傷自己，會流血，處理不當會感染&#10;• 被樹砸中：倒木可能砸傷小人；30% 機率砸中頭部造成腦震盪或昏厥，並觸發警示&#10;• 意外機率隨種植技能遞減（0 級 1% → 20 級 0.2%）&#10;• 意外會在健康分頁留下一則紀錄，15～30 天後消失"
-                     data-search="green hazard: toxic flora and woodcutting《綠色殺機：毒草與伐木》 &quot;i sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleeding. another got a concussion from a falling tree. meanwhile, my grazing cow ate toxic flora and dropped dead.&quot; make the wilderness dangerous again. harvesting, grazing, and woodcutting now carry a very small, unpredictable risk of accidents. no warnings, just rimworld. 「我叫小人去砍點木頭蓋床，結果斧頭手滑割傷大出血，另一隻被樹幹砸到腦震盪；放出去吃草的牛還吃到毒草直接猝死。」 讓野外的植物不再人畜無害。採收、啃草、砍樹的瞬間，都有極小的機率出事，事前沒有徵兆。 // human: harvest allergy • colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500). • reduces breathing and manipulation. recovers naturally in 1-2 days. • grants antibodies for 3-5 days after recovery (allergy chance reduced by 90%). // animal: grazing poison • animals have a 0.08% chance per bite to ingest toxic flora (including wild animals). • outcomes upon poisoning: • 80% mild gastroenteritis: vomiting, sluggishness. recovers in half a day. • 10% neurotoxin: triggers a manhunter rampage. recovers in 12-24 hours. • 10% lethal toxin: condition worsens daily, fatal in 2 days; requires vet care to suppress. • grants adaptation for 3-5 days after recovery (poison chance reduced by 80%). // woodcutting accidents • axe slip: colonists may cut themselves while chopping trees, causing bleeding and potential infection. • tree fall: falling trees may crush pawns; 30% chance to hit the head, causing concussions or knockout. sends an alert. • accident chance decreases with plant skill (lv.0 1% -&gt; lv.20 0.2%). • accident records remain in the health tab and disappear after 15-30 days. // bug reports &amp; feedback if you encounter any bugs or have suggestions for improvement, please let me know in the comments. thanks! // 人類：採收過敏 • 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次） • 過敏會降低呼吸與操作能力，1～2 天後自然痊癒 • 痊癒後的 3～5 天內有抗體，再次過敏的機率降為原本的 10% // 動物：啃草中毒 • 動物每啃一口草，有 0.08% 機率吃到毒草（野生動物也會） • 中毒後依機率分成三種結果： ◦ 80% 輕微腸胃炎：嘔吐、行動遲緩，半天內自行康復 ◦ 10% 神經毒素：陷入狂暴並攻擊周圍生物，約半天到一天後恢復 ◦ 10% 劇毒：毒素持續惡化，約兩天致死；需獸醫治療才能壓制 • 中毒過的動物有 3～5 天適應期，期間中毒機率降為原本的 20% // 砍樹意外 • 斧頭打滑：砍樹時可能割傷自己，會流血，處理不當會感染 • 被樹砸中：倒木可能砸傷小人；30% 機率砸中頭部造成腦震盪或昏厥，並觸發警示 • 意外機率隨種植技能遞減（0 級 1% → 20 級 0.2%） • 意外會在健康分頁留下一則紀錄，15～30 天後消失 mod 1.6">
-
-                <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-20"></div>
-                    <img src="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/" alt="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">
-                </figure>
-
-                <div class="p-4 sm:p-5 flex flex-col flex-grow bg-[#050608]">
-                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: 3812133334</div>
-                    <h2 class="text-sm font-bold text-white mb-2 uppercase leading-tight" style="font-family: 'Inter', sans-serif;">Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》</h2>
-
-                    <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="fav">FAV</span>: 13</span>
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="sub">SUB</span>: 31</span>
-                    </div>
-
-                    <div class="lang-en text-xs text-[#717684] mb-4 leading-relaxed font-mono space-y-1.5"><span class="block">&gt; &quot;I sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleeding. Another got a concussion from a falling tree. Meanwhile, my grazing cow ate toxic flora and dropped dead.&quot;</span><span class="block">&gt; Make the wilderness dangerous again. Harvesting, grazing, and woodcutting now carry a very small, unpredictable risk of accidents. No warnings, just RimWorld.</span></div>
-                    <div class="lang-zh text-xs text-[#717684] mb-4 leading-relaxed font-mono space-y-1.5"><span class="block">&gt; 「我叫小人去砍點木頭蓋床，結果斧頭手滑割傷大出血，另一隻被樹幹砸到腦震盪；放出去吃草的牛還吃到毒草直接猝死。」</span><span class="block">&gt; 讓野外的植物不再人畜無害。採收、啃草、砍樹的瞬間，都有極小的機率出事，事前沒有徵兆。</span></div>
-
-                    <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
-                        <span>2026.10.08</span>
-                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity" data-i18n="access">ACCESS -&gt;</span>
-                    </div>
-                </div>
-            </article>
-            
-            <!-- CARDS_END -->
+    <!-- CARDS_START --><!-- CARDS_END -->
     <article id="coming-soon" class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-75 hover:opacity-100 transition-opacity">
       <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732]"><span class="text-xs font-bold text-[#d97706] tracking-[0.4em] cursor-blink">CLASSIFIED</span></figure>
       <div class="p-4 sm:p-5 flex flex-col flex-grow">
@@ -264,6 +228,43 @@ html[data-lang="en"] #lang-toggle [data-l="en"], html[data-lang="zh"] #lang-togg
   </section>
 
 </main>
+<!-- FOOTER_START -->
+<!-- 修改後 -->
+<footer class="w-full border-t border-[#1d2027] bg-[#050608] pt-12 pb-16 flex-none">
+  <div class="px-5 md:px-10 max-w-[1400px] mx-auto w-full flex flex-col md:flex-row justify-between gap-10">
+    
+    <!-- 聯絡框 Contact Form -->
+    <div class="flex-1 max-w-md w-full">
+      <h3 class="text-[11px] sm:text-xs font-bold text-[#d97706] mb-4 uppercase tracking-widest font-mono">
+        // COMM_LINK (CONTACT)
+      </h3>
+      <form class="flex flex-col gap-3 font-mono" onsubmit="event.preventDefault();">
+        <input type="text" placeholder="SENDER_ID [NAME]" class="term-input w-full py-2.5 px-4 text-xs uppercase tracking-wider box-border">
+        <input type="email" placeholder="RETURN_ADDRESS [EMAIL]" class="term-input w-full py-2.5 px-4 text-xs uppercase tracking-wider box-border">
+        <textarea rows="4" placeholder="TRANSMISSION_DATA [MESSAGE]..." class="term-input w-full py-2.5 px-4 text-xs uppercase tracking-wider box-border resize-y"></textarea>
+        <button type="submit" class="term-btn py-2.5 px-4 text-xs uppercase font-bold text-left tracking-widest mt-1">
+          EXECUTE_TRANSMISSION -&gt;
+        </button>
+      </form>
+    </div>
+
+    <!-- 版權宣告 Copyright & Info -->
+    <div class="flex-1 flex flex-col md:items-end justify-between font-mono mt-4 md:mt-0">
+      <div class="md:text-right">
+        <h2 class="text-base sm:text-lg font-black text-white mb-2 uppercase" style="font-family: 'Inter', sans-serif;">NANA_ARCHIVE</h2>
+        <p class="text-[10px] text-[#717684] uppercase tracking-widest">RimWorld Mods Database Terminal</p>
+      </div>
+      
+      <div class="mt-12 md:mt-auto text-[10px] text-[#525866] md:text-right uppercase tracking-widest leading-relaxed">
+        <p>&copy; 2026 NANA. ALL RIGHTS RESERVED.</p>
+        <p>SYSTEM.DAT // AUTHORIZED PERSONNEL ONLY.</p>
+        <p class="mt-2 text-[#d97706] opacity-50">END_OF_FILE.</p>
+      </div>
+    </div>
+
+  </div>
+</footer>
+<!-- FOOTER_END -->
 
 <div id="modal" class="modal" data-lenis-prevent hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
   <div class="modal-box p-1" data-lenis-prevent>
@@ -454,56 +455,158 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
   setTimeout(function() { cards = [].slice.call(document.querySelectorAll('[data-mod-card]')); build('tags'); build('versions'); run(); }, 300);
 })();
 
+/* ===== SUPPORT 變形邏輯 (終極抗抽筋與精確高度版) ===== */
 (function () {
   const box = document.getElementById('support');
   if (!box || box.style.display === 'none') return;
-  const sent = document.getElementById('sup-sentinel'), label = document.getElementById('sup-label'), tog = document.getElementById('sup-toggle');
+  
+  const sent = document.getElementById('sup-sentinel');
+  const header = document.querySelector('header');
+  const label = document.getElementById('sup-label');
+  const tog = document.getElementById('sup-toggle');
+  const root = document.documentElement;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let docked = false, compact = false, pin = null, pinY = 0, ticking = false, timer = null, anim = null;
+  
+  let docked = false, compact = false, pin = null, pinY = 0;
+  let ticking = false, timer = null, anim = null;
+  let isResizing = false, resizeTimer = null;
+  let expandedHeight = 0, compactHeight = 0;
 
   const CH = '!<>-_\\/[]{}=+*^?#01';
   function scramble(el, text) {
     if (reduce) { el.textContent = text; return; }
     clearInterval(timer); let f = 0;
     timer = setInterval(function () {
-      el.textContent = text.split('').map(function (c, i) { return (c === ' ' || c === '/' || i < f / 2) ? c : CH[Math.floor(Math.random() * CH.length)]; }).join('');
+      el.textContent = text.split('').map(function (c, i) {
+        return (c === ' ' || c === '/' || i < f / 2) ? c : CH[Math.floor(Math.random() * CH.length)];
+      }).join('');
       if (++f > text.length * 2) { clearInterval(timer); el.textContent = text; }
     }, 28);
   }
 
-  function setTog() { tog.textContent = compact ? '[+]' : '[–]'; tog.setAttribute('aria-expanded', String(!compact)); }
+  function setTog() {
+    tog.textContent = compact ? '[+]' : '[–]';
+    tog.setAttribute('aria-expanded', String(!compact));
+  }
 
-  function apply(d, c) {
-    if (d === docked && c === compact) return;
-    if (anim) anim.cancel();
-    const h0 = box.offsetHeight, was = compact;
-    docked = d; compact = c;
-    box.classList.toggle('docked', d); box.classList.toggle('compact', c);
-    if (c !== was) { scramble(label, c ? NANA.t('sup_min') : NANA.t('sup_full')); setTog(); }
-    const h1 = box.offsetHeight;
-    if (!reduce && h0 !== h1 && box.animate) {
-      box.style.overflow = 'hidden';
-      anim = box.animate([{ height: h0 + 'px' }, { height: h1 + 'px' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
-      anim.onfinish = anim.oncancel = function () { box.style.overflow = ''; anim = null; };
+  // 強制同步平滑滾動套件 (Lenis) 的高度認知，防止底部聯絡資訊被切斷
+  function forceLenis() {
+    if (window.__lenis) {
+       window.__lenis.resize();
+       // 延遲 100 毫秒再次校準，確保瀏覽器 Zoom 或動畫完全渲染完畢
+       setTimeout(() => window.__lenis.resize(), 100);
     }
   }
 
-  function update() {
-    ticking = false;
-    // 使用精準計算取代複雜變數，確保 CSS 貼齊
-    const headerH = window.innerWidth >= 640 ? 68 : 60;
-    const depth = headerH - sent.getBoundingClientRect().top;
-    const d = depth >= -1; 
-    if (pin && Math.abs(window.scrollY - pinY) > 160) pin = null;
-    let c = compact ? depth > 4 : depth > 24;
-    if (pin === 'open') c = false; else if (pin === 'closed') c = true;
-    apply(d, d && c);
+  function measure(snap = false) {
+    root.style.setProperty('--header-h', header.offsetHeight + 'px');
+    
+    // 暫停過渡效果，進行精確的高低差測量
+    const wasDocked = box.classList.contains('docked');
+    const wasCompact = box.classList.contains('compact');
+    box.style.transition = 'none';
+    
+    box.classList.add('docked');
+    box.classList.remove('compact');
+    expandedHeight = box.offsetHeight;
+    
+    box.classList.add('compact');
+    compactHeight = box.offsetHeight;
+    
+    if (!wasDocked) box.classList.remove('docked');
+    if (!wasCompact) box.classList.remove('compact');
+    
+    box.offsetHeight; // 強制重繪
+    box.style.transition = '';
+    
+    update(snap);
   }
 
-  tog.addEventListener('click', function () { pin = compact ? 'open' : 'closed'; pinY = window.scrollY; update(); });
-  addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
-  label.textContent = NANA.t('sup_full'); setTog(); update();
-  document.addEventListener('langchange', function () { label.textContent = compact ? NANA.t('sup_min') : NANA.t('sup_full'); });
+  function apply(d, c, snap = false) {
+    if (d === docked && c === compact) return;
+    if (anim) { anim.cancel(); anim = null; }
+    
+    const h0 = box.offsetHeight, was = compact;
+    docked = d; compact = c;
+    
+    box.classList.toggle('docked', d);
+    box.classList.toggle('compact', c);
+    
+    const currentLangText = c ? NANA.t('sup_min') : NANA.t('sup_full');
+    if (c !== was) { scramble(label, currentLangText); setTog(); }
+    
+    const h1 = box.offsetHeight;
+
+    if (!snap && !reduce && h0 !== h1 && box.animate) {
+      box.style.overflow = 'hidden';
+      anim = box.animate([{ height: h0 + 'px' }, { height: h1 + 'px' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      anim.onfinish = anim.oncancel = function () { 
+        box.style.overflow = ''; 
+        anim = null; 
+        forceLenis(); 
+      };
+    } else {
+      forceLenis();
+    }
+  }
+
+  function update(snap = false) {
+    ticking = false;
+    const scrollY = window.scrollY;
+    const depth = header.offsetHeight - sent.getBoundingClientRect().top;
+    const d = depth > 0;
+    
+    if (pin && Math.abs(scrollY - pinY) > 160) pin = null;
+    
+    let c = compact;
+    if (!compact && scrollY > 60) {
+      // 🔥 數學預測防抽筋：計算如果收闔後，網頁總長度是否還足夠滾動？
+      const shrinkAmount = expandedHeight - compactHeight;
+      const futureMaxScroll = (document.body.scrollHeight - shrinkAmount) - window.innerHeight;
+      
+      // 只有在收闔後，捲軸還能安全維持在 20px 以上才允許收闔，從根本上消滅無限抽筋迴圈
+      if (futureMaxScroll > 20) {
+          c = true;
+      }
+    } else if (compact && scrollY <= 10) {
+      c = false;
+    }
+    
+    if (pin === 'open') c = false; 
+    else if (pin === 'closed') c = true;
+    
+    apply(d, c, snap);
+  }
+
+  tog.addEventListener('click', function () {
+    pin = compact ? 'open' : 'closed'; pinY = window.scrollY; update();
+  });
+  
+  addEventListener('scroll', function () { 
+    if (!ticking) { 
+      ticking = true; 
+      requestAnimationFrame(() => update(isResizing)); 
+    } 
+  }, { passive: true });
+  
+  addEventListener('resize', function () {
+    isResizing = true;
+    clearTimeout(resizeTimer);
+    requestAnimationFrame(() => measure(true)); 
+    resizeTimer = setTimeout(() => { 
+        isResizing = false; 
+        forceLenis(); // 視窗縮放結束後，強制更新滾動條長度
+    }, 250);
+  });
+  
+  addEventListener('load', () => measure(true));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => measure(true));
+  
+  label.textContent = NANA.t('sup_full'); setTog(); measure(true);
+
+  document.addEventListener('langchange', function () { 
+    label.textContent = compact ? NANA.t('sup_min') : NANA.t('sup_full'); 
+  });
 })();
 </script>
 </body>
