@@ -75,6 +75,11 @@ function parseDescription(raw) {
     s = s.replace(/\[(img|previewyoutube|video|youtube)(?:=[^\]]*)?\][\s\S]*?\[\/\1\]/gi, '\n'); // 圖片/影片
     s = s.replace(/\[url=[^\]]*\]([\s\S]*?)\[\/url\]/gi, '$1');                                   // 連結只留文字
     s = s.replace(/\[url\][\s\S]*?\[\/url\]/gi, '');
+    // 容錯：作者常把結尾寫成 [h1]（少了斜線），所以同一行內的 [hN]...[hN] 或 [hN]...[/hN] 都當標題；
+    // 只有開頭沒有結尾的 [hN] 整行也當標題，落單的 [/hN] 直接移除
+    s = s.replace(/\[h([1-3])\]([^\n]*?)\[\/?h\1\]/gi, (_, n, t) => '\n\u0001' + n + '\u0003' + t + '\n');
+    s = s.replace(/^[ \t]*\[h([1-3])\]([^\n]*)$/gim, (_, n, t) => '\n\u0001' + n + '\u0003' + t + '\n');
+    s = s.replace(/\[\/h[1-3]\]/gi, '');
     s = s.replace(/\[h([1-3])\]([\s\S]*?)\[\/h\1\]/gi, (_, n, t) => '\n\u0001' + n + '\u0003' + t.replace(/\s*\n\s*/g, ' ') + '\n');
     s = s.replace(/\[hr\]\s*\[\/hr\]|\[hr\]/gi, '\n\n');
     let depth = 0; // 追蹤巢狀 [list]
@@ -152,7 +157,7 @@ function promoteIntro(lines) {
     let n = 0;
     for (const ln of lines) {
         if (n >= 2) break;
-        if (ln.type === 'h' && (ln.level === 1 || ln.level === 2) && !ln.wrapped) { ln.type = 'p'; n++; }
+        if (ln.type === 'h' && (ln.level === 1 || ln.level === 2) && !ln.wrapped) { ln.type = 'p'; ln.text = ln.text.replace(/^'(.+)'$/, '$1'); n++; }
         else break;
     }
     return lines;
