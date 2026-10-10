@@ -64,17 +64,30 @@ input[type="checkbox"]:checked::after { content: '×'; position: absolute; top: 
 .modal-x:hover { background: #fff; }
 [hidden] { display: none !important; }
 
+/* 彈窗：內容區獨立滾動，底部 support / steam 固定可見 */
+.modal-box { display: flex; flex-direction: column; overflow: hidden; }
+.modal-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.modal-foot { flex: none; }
 /* 彈窗內可獨立滾動，不會帶動背景頁面 */
 .modal { overscroll-behavior: contain; }
 .modal-box { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 
 /* 彈窗說明文字排版 */
 #m-desc { overflow-wrap: anywhere; }
-#m-desc .d-h { color: var(--accent-amber); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin: 1rem 0 .35rem; }
+#m-desc .d-h { color: var(--accent-amber); font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; margin: 1.1rem 0 .4rem; }
+#m-desc .d-h::before { content: '[ '; opacity: .6; }
+#m-desc .d-h::after { content: ' ]'; opacity: .6; }
 #m-desc .d-h:first-child { margin-top: 0; }
 #m-desc .d-p { margin: 0 0 .6rem; }
 #m-desc .d-li { position: relative; padding-left: 1rem; margin: 0 0 .3rem; }
 #m-desc .d-li::before { content: '›'; position: absolute; left: .15rem; color: var(--accent-amber); }
+#m-desc .d-li2 { margin-left: 1rem; color: #8b8f9c; }
+#m-desc .d-li2::before { content: '–'; }
+
+/* 彈窗內的贊助列 */
+.m-sup-link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; border: 1px solid currentColor; padding: .55rem .25rem; font: 700 12px 'JetBrains Mono', monospace; text-align: center; transition: background-color .15s; }
+.m-sup-link small { font-weight: 400; font-size: 9px; opacity: .75; text-transform: uppercase; }
+.m-sup-link:hover { background-color: rgba(255,255,255,.07); }
 
 /* 語言切換 */
 html[data-lang="en"] .lang-zh, html[data-lang="zh"] .lang-en { display: none !important; }
@@ -199,49 +212,9 @@ html[data-lang="en"] #lang-toggle [data-l="en"], html[data-lang="zh"] #lang-togg
   </section>
 
   <section id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 pt-1 w-full">
-    <!-- CARDS_START -->
-
-            <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer"
-                     data-mod-card
-                     data-title="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》"
-                     data-date="2026.10.08"
-                     data-fav="13"
-                     data-sub="32"
-                     data-img="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/"
-                     data-url="https://steamcommunity.com/sharedfiles/filedetails/?id=3812133334"
-                     data-tags="[&quot;Mod&quot;]"
-                     data-versions="[&quot;1.6&quot;]"
-                     data-full-en="// [ Human: Harvest Allergy ]&#10;- Colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500).&#10;- Reduces breathing and manipulation. Recovers naturally in 1-2 days.&#10;- Grants antibodies for 3-5 days after recovery (allergy chance reduced by 90%).&#10;// [ Animal: Grazing Poison ]&#10;- Animals have a 0.08% chance per bite to ingest toxic flora (including wild animals).&#10;- Outcomes upon poisoning:&#10;• 80% Mild Gastroenteritis: Vomiting, sluggishness. Recovers in half a day.&#10;• 10% Neurotoxin: Triggers a manhunter rampage. Recovers in 12-24 hours.&#10;• 10% Lethal Toxin: Condition worsens daily, fatal in 2 days; requires vet care to suppress.&#10;- Grants adaptation for 3-5 days after recovery (poison chance reduced by 80%).&#10;// [ Woodcutting Accidents ]&#10;- Axe Slip: Colonists may cut themselves while chopping trees, causing bleeding and potential infection.&#10;..."
-                     data-full-zh="// 【人類：採收過敏】&#10;• 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次）&#10;• 過敏會降低呼吸與操作能力，1～2 天後自然痊癒&#10;• 痊癒後的 3～5 天內有抗體，再次過敏的機率降為原本的 10%&#10;// 【動物：啃草中毒】&#10;• 動物每啃一口草，有 0.08% 機率吃到毒草（野生動物也會）&#10;• 中毒後依機率分成三種結果：&#10;80% 輕微腸胃炎：嘔吐、行動遲緩，半天內自行康復&#10;10% 神經毒素：陷入狂暴並攻擊周圍生物，約半天到一天後恢復&#10;10% 劇毒：毒素持續惡化，約兩天致死；需獸醫治療才能壓制&#10;• 中毒過的動物有 3～5 天適應期，期間中毒機率降為原本的 20%&#10;// 【砍樹意外】&#10;• 斧頭打滑：砍樹時可能割傷自己，會流血，處理不當會感染&#10;• 被樹砸中：倒木可能砸傷小人；30% 機率砸中頭部造成腦震盪或昏厥，並觸發警示&#10;• 意外機率隨種植技能遞減（0 級 1% → 20 級 0.2%）&#10;• 意外會在健康分頁留下一則紀錄，15～30 天後消失&#10;// 【設定】&#10;..."
-                     data-search="green hazard: toxic flora and woodcutting《綠色殺機：毒草與伐木》 // [ human: harvest allergy ] - colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500). - reduces breathing and manipulation. recovers naturally in 1-2 days. - grants antibodies for 3-5 days after recovery (allergy chance reduced by 90%). // [ animal: grazing poison ] - animals have a 0.08% chance per bite to ingest toxic flora (including wild animals). - outcomes upon poisoning: • 80% mild gastroenteritis: vomiting, sluggishness. recovers in half a day. • 10% neurotoxin: triggers a manhunter rampage. recovers in 12-24 hours. • 10% lethal toxin: condition worsens daily, fatal in 2 days; requires vet care to suppress. - grants adaptation for 3-5 days after recovery (poison chance reduced by 80%). // [ woodcutting accidents ] - axe slip: colonists may cut themselves while chopping trees, causing bleeding and potential infection. ... // 【人類：採收過敏】 • 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次） • 過敏會降低呼吸與操作能力，1～2 天後自然痊癒 • 痊癒後的 3～5 天內有抗體，再次過敏的機率降為原本的 10% // 【動物：啃草中毒】 • 動物每啃一口草，有 0.08% 機率吃到毒草（野生動物也會） • 中毒後依機率分成三種結果： 80% 輕微腸胃炎：嘔吐、行動遲緩，半天內自行康復 10% 神經毒素：陷入狂暴並攻擊周圍生物，約半天到一天後恢復 10% 劇毒：毒素持續惡化，約兩天致死；需獸醫治療才能壓制 • 中毒過的動物有 3～5 天適應期，期間中毒機率降為原本的 20% // 【砍樹意外】 • 斧頭打滑：砍樹時可能割傷自己，會流血，處理不當會感染 • 被樹砸中：倒木可能砸傷小人；30% 機率砸中頭部造成腦震盪或昏厥，並觸發警示 • 意外機率隨種植技能遞減（0 級 1% → 20 級 0.2%） • 意外會在健康分頁留下一則紀錄，15～30 天後消失 // 【設定】 ... mod 1.6">
-
-                <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732] group-hover:border-[#d97706] transition-colors relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-20"></div>
-                    <img src="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/" alt="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">
-                </figure>
-
-                <div class="p-4 sm:p-5 flex flex-col flex-grow bg-[#050608]">
-                    <div class="text-[10px] text-[#d97706] mb-1.5 uppercase font-mono tracking-widest">FILE_ID: 3812133334</div>
-                    <h2 class="text-sm font-bold text-white mb-2 uppercase leading-tight" style="font-family: 'Inter', sans-serif;">Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》</h2>
-
-                    <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="fav">FAV</span>: 13</span>
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="sub">SUB</span>: 32</span>
-                    </div>
-
-                    <p class="lang-en text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono">&gt; - Colonists have a 0.2% chance of allergic reactions when harvesting plants (avg. 1 in 500). - Reduces breathi...</p>
-                    <p class="lang-zh text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono">&gt; 殖民者每次採收植物，有 0.2% 機率過敏（平均約 500 次一次） 過敏會降低呼吸與操作能力，1～2 天後自然痊癒 痊...</p>
-
-                    <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
-                        <span>2026.10.08</span>
-                        <span class="text-[#d97706] opacity-0 group-hover:opacity-100 transition-opacity" data-i18n="access">ACCESS -&gt;</span>
-                    </div>
-                </div>
-            </article>
-            
-            <!-- CARDS_END -->
+    <!-- CARDS_START --><!-- CARDS_END -->
     <article id="coming-soon" class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-75 hover:opacity-100 transition-opacity">
-      <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732]"><span class="text-xs font-bold text-[#d97706] tracking-[0.4em] cursor-blink" data-i18n="cs_fig">CLASSIFIED</span></figure>
+      <figure class="w-full bg-black aspect-video flex items-center justify-center border-b border-dashed border-[#232732]"><span class="text-xs font-bold text-[#d97706] tracking-[0.4em] cursor-blink">CLASSIFIED</span></figure>
       <div class="p-4 sm:p-5 flex flex-col flex-grow">
         <div class="text-[10px] text-[#525866] mb-1.5 uppercase font-mono" data-i18n="cs_sys">SYS.DAT // UNKNOWN</div><h2 class="text-sm font-bold text-white mb-2 uppercase" style="font-family: 'Inter', sans-serif;" data-i18n="cs_title">[REDACTED_PROJECT]</h2>
         <p class="text-xs text-[#717684] line-clamp-3 mb-4 font-mono leading-relaxed" style="white-space:pre-line" data-i18n="cs_desc">&gt; INITIALIZING RECONSTRUCTION PROTOCOL...&#10;&gt; CORE MECHANICS OVERHAUL IN PROGRESS.&#10;&gt; AWAITING DEPLOYMENT.</p>
@@ -255,14 +228,24 @@ html[data-lang="en"] #lang-toggle [data-l="en"], html[data-lang="zh"] #lang-togg
 <div id="modal" class="modal" data-lenis-prevent hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
   <div class="modal-box p-1" data-lenis-prevent>
     <button id="m-close" class="modal-x" aria-label="Close">✕</button>
-    <div class="border border-[#1d2027] bg-[#090a0f]">
+    <div class="modal-scroll border border-[#1d2027] bg-[#090a0f]" data-lenis-prevent>
       <img id="m-img" alt="" class="w-full aspect-video object-cover border-b border-[#1d2027]">
       <div class="p-5 sm:p-6">
         <h2 id="m-title" class="text-base sm:text-lg font-bold mb-2 uppercase text-[#d97706]" style="font-family: 'Inter', sans-serif;"></h2>
         <p id="m-meta" class="text-[10px] text-[#525866] mb-4 tracking-widest font-mono"></p>
-        <div id="m-chips" class="flex flex-wrap gap-1.5 sm:gap-2 mb-4"></div><div id="m-desc" class="text-xs text-[#a1a1aa] mb-6 leading-relaxed font-mono"></div>
-        <div class="flex justify-between items-center border-t border-[#1d2027] pt-4"><a id="m-steam" class="border border-[#d4d4d8] text-[#d4d4d8] hover:bg-[#d4d4d8] hover:text-black px-4 py-2 text-xs font-mono font-bold uppercase transition-colors" target="_blank" rel="noopener noreferrer" data-i18n="steam">ACCESS STEAM -&gt;</a></div>
+        <div id="m-chips" class="flex flex-wrap gap-1.5 sm:gap-2 mb-4"></div>
+        <div id="m-desc" class="text-xs text-[#a1a1aa] leading-relaxed font-mono"></div>
       </div>
+    </div>
+    <div class="modal-foot border border-t-0 border-[#1d2027] bg-[#090a0f] px-4 sm:px-6 py-3">
+      <div id="m-support" hidden>
+        <div class="flex items-baseline justify-between gap-x-3 gap-y-1 mb-2 flex-wrap">
+          <span class="text-[10px] sm:text-xs font-bold text-[#d97706] uppercase tracking-widest" data-i18n="sup_min">// SUPPORT</span>
+          <span class="text-[10px] text-[#717684] font-mono" data-i18n="m_hint">&gt; LIKE THIS MOD? HELP FUEL THE NEXT ONE.</span>
+        </div>
+        <div id="m-sup-links" class="grid grid-cols-3 gap-2"></div>
+      </div>
+      <a id="m-steam" class="mt-3 block text-center border border-[#d4d4d8] text-[#d4d4d8] hover:bg-[#d4d4d8] hover:text-black px-4 py-2 text-xs font-mono font-bold uppercase transition-colors" target="_blank" rel="noopener noreferrer" data-i18n="steam">ACCESS STEAM -&gt;</a>
     </div>
   </div>
 </div>
@@ -294,7 +277,8 @@ checkInAppBrowser();
       cs_fig: 'CLASSIFIED', cs_sys: 'SYS.DAT // UNKNOWN', cs_title: '[REDACTED_PROJECT]',
       cs_desc: '> INITIALIZING RECONSTRUCTION PROTOCOL...\n> CORE MECHANICS OVERHAUL IN PROGRESS.\n> AWAITING DEPLOYMENT.',
       cs_status: 'STATUS: IN_DEV',
-      fav: 'FAV', sub: 'SUB', modified: 'MODIFIED', access: 'ACCESS ->', steam: 'ACCESS STEAM ->'
+      fav: 'FAV', sub: 'SUB', modified: 'MODIFIED', access: 'ACCESS ->', steam: 'ACCESS STEAM ->',
+      m_hint: '> LIKE THIS MOD? HELP FUEL THE NEXT ONE.'
     },
     zh: {
       iab: '[警告] 偵測到社群內建瀏覽器。為確保支付跳轉正常，請點選右上角改以外部瀏覽器開啟。',
@@ -307,10 +291,11 @@ checkInAppBrowser();
       exec: '前往 ->',
       ph: '搜尋模組...', tags: '[ 標籤 ]', versions: '[ 版本 ]', no_data: '無資料',
       count: '符合筆數：',
-      cs_fig: '機密', cs_sys: 'SYS.DAT // 未知', cs_title: '[機密專案]',
+      cs_fig: 'CLASSIFIED', cs_sys: 'SYS.DAT // 未知', cs_title: '[機密專案]',
       cs_desc: '> 重建協定初始化中...\n> 核心機制全面改造進行中。\n> 等待部署。',
       cs_status: '狀態：開發中',
-      fav: '收藏', sub: '訂閱', modified: '更新', access: '查看 ->', steam: '前往 STEAM ->'
+      fav: '收藏', sub: '訂閱', modified: '更新', access: '查看 ->', steam: '前往 STEAM ->',
+      m_hint: '> 喜歡這個模組嗎？歡迎贊助，支持下一個作品。'
     }
   };
   let lang = document.documentElement.dataset.lang === 'zh' ? 'zh' : 'en';
@@ -357,9 +342,25 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
       const el = document.createElement('div');
       if (line.indexOf('// ') === 0) { el.className = 'd-h'; el.textContent = line.slice(3); }
       else if (line.indexOf('• ') === 0) { el.className = 'd-li'; el.textContent = line.slice(2); }
+      else if (line.indexOf('◦ ') === 0) { el.className = 'd-li d-li2'; el.textContent = line.slice(2); }
       else { el.className = 'd-p'; el.textContent = line; }
       box.appendChild(el);
     });
+  }
+  function buildSupport() {
+    const wrap = $('m-support'), box = $('m-sup-links'); if (!wrap || !box) return;
+    box.textContent = '';
+    const src = [].slice.call(document.querySelectorAll('#support .support-link')).filter(function (a) { return a.style.display !== 'none'; });
+    src.forEach(function (a) {
+      const link = document.createElement('a'), code = document.createElement('span'), sub = document.createElement('small');
+      const sh = a.querySelector('.t-short'), sb = a.querySelector('.sup-sub');
+      link.className = 'm-sup-link'; link.href = a.getAttribute('href'); link.target = '_blank'; link.rel = 'noopener noreferrer';
+      link.style.color = getComputedStyle(a).color;
+      code.textContent = sh ? sh.textContent.replace(/^>\s*/, '') : '';
+      sub.textContent = sb ? sb.textContent : '';
+      link.appendChild(code); link.appendChild(sub); box.appendChild(link);
+    });
+    wrap.hidden = !src.length;
   }
   function fill(c) {
     $('m-title').textContent = c.dataset.title || '';
@@ -378,7 +379,7 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
     const st = $('m-steam'), url = c.dataset.url || ''; st.hidden = !/^https:\/\/steamcommunity\.com\//.test(url); st.href = st.hidden ? '#' : url;
     m.hidden = false; document.body.style.overflow = 'hidden';
     if (window.__lenis) window.__lenis.stop();   // 彈窗開啟時，鎖住背景的平滑滾動
-    m.querySelector('.modal-box').scrollTop = 0;
+    m.querySelector('.modal-scroll').scrollTop = 0;
     $('m-close').focus();
   }
   function close() {
@@ -388,7 +389,8 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
   }
   if (grid) { grid.addEventListener('click', function (e) { const c = e.target.closest('[data-mod-card]'); if (c && !e.target.closest('a')) open(c); }); grid.addEventListener('keydown', function (e) { const c = e.target.closest('[data-mod-card]'); if (c && e.target === c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(c); } }); }
   $('m-close').onclick = close; m.addEventListener('click', function (e) { if (e.target === m) close(); }); document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !m.hidden) close(); });
-  document.addEventListener('langchange', function () { if (!m.hidden && current) fill(current); });
+  buildSupport();
+  document.addEventListener('langchange', function () { buildSupport(); if (!m.hidden && current) fill(current); });
 })();
 
 (function () {

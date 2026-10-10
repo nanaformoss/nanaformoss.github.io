@@ -7,8 +7,8 @@ const APP_ID = '294100'; // RimWorld
 
 // ================= 可自行調整的設定 =================
 const LIMITS = {
-    en: { summary: 110, full: 900 },  // 卡片摘要字數 / 彈窗內文字數上限
-    zh: { summary: 60,  full: 450 },
+    en: { summary: 480, full: 2500 },  // 卡片小字介紹 / 彈窗內文 的字數上限（超過會在行尾截斷）
+    zh: { summary: 260, full: 1300 },
 };
 
 // 這些「標題」所在的段落會整段被丟掉（不分大小寫）
@@ -48,7 +48,10 @@ function safeHttpsUrl(u) {
 }
 
 // ---------- 說明文字處理 ----------
-// 1) BBCode -> 結構化行（h 標題 / li 條列 / p 段落）
+// 純文字標題：【標題】 或 [ Title ]
+const H_PLAIN = [/^【\s*([^】]+?)\s*】$/, /^\[\s+(.+?)\s+\]$/];
+
+// 1) BBCode / 純文字 -> 結構化行（h 標題 / li 條列(depth 0|1) / p 段落）
 function parseDescription(raw) {
     let s = String(raw || '').replace(/\r\n?/g, '\n');
 
@@ -57,8 +60,12 @@ function parseDescription(raw) {
     s = s.replace(/\[url\][\s\S]*?\[\/url\]/gi, '');
     s = s.replace(/\[h([1-3])\]([\s\S]*?)\[\/h\1\]/gi, (_, n, t) => '\n\u0001' + t.replace(/\s*\n\s*/g, ' ') + '\n');
     s = s.replace(/\[hr\]\s*\[\/hr\]|\[hr\]/gi, '\n\n');
-    s = s.replace(/\[\/?o?list\]/gi, '\n');
-    s = s.replace(/\[\*\]/g, '\n\u0002');
+    let depth = 0; // 追蹤巢狀 [list]
+    s = s.replace(/\[(\/?)o?list\]|\[\*\]/gi, (m, close) => {
+        if (m === '[*]') return '\n\u0002' + Math.max(depth - 1, 0);
+        if (close) { depth = Math.max(depth - 1, 0); return '\n'; }
+        depth++; return '\n';
+    });
     s = s.replace(/\[\/?(?:table|tr)(?:=[^\]]*)?\]/gi, '\n');
     s = s.replace(/\[\/?(?:td|th)(?:=[^\]]*)?\]/gi, ' ');
     s = s.replace(/\[\/?(?:b|i|u|s|strike|spoiler|noparse|code|quote|color|size|font|center|left|right|justify|p)(?:=[^\]]*)?\]/gi, '');
@@ -67,13 +74,36 @@ function parseDescription(raw) {
     const rows = [];
     for (let line of s.split('\n')) {
         line = line.trim();
-        let type = 'p';
+        let type = 'p', d = 0;
         if (line.startsWith('\u0001')) { type = 'h'; line = line.slice(1).trim(); }
-        else if (line.startsWith('\u0002')) { type = 'li'; line = line.slice(1).trim(); }
+        else if (line.startsWith('\u0002')) { type = 'li'; d = Number(line[1]) || 0; line = line.slice(2).trim(); }
         line = line.replace(/[ \t\u3000]+/g, ' ');
         if (!/[\p{L}\p{N}]/u.test(line)) { rows.push({ type: 'blank', text: '' }); continue; } // 純符號/分隔線
         if (DROP_LINE.test(line)) continue;
-        rows.push({ type, text: line });
+        rows.push({ type, text: line, depth: d });
+    }
+
+    // 純文字的標題與條列（作者直接打 【標題】、「* 」、「- 」、「80% …」的情況）
+    let prevLi = null;
+    for (const r of rows) {
+        if (r.type === 'blank') continue;
+        if (r.type === 'h') { r.text = r.text.replace(/^[【\[]\s*(.+?)\s*[】\]]$/, '$1'); prevLi = null; continue; }
+        if (r.type === 'li') { r.kind = 'main'; prevLi = r; continue; }
+        let hm = null;
+        for (const re of H_PLAIN) { hm = r.text.match(re); if (hm) break; }
+        if (hm) { r.type = 'h'; r.text = hm[1]; prevLi = null; continue; }
+        const bm = r.text.match(/^([*\-•·‧＊])\s+(.+)$/);
+        if (bm) {
+            const star = bm[1] === '*' || bm[1] === '＊';
+            r.type = 'li'; r.text = bm[2]; r.depth = 0; r.kind = 'main';
+            if (star && prevLi && ((prevLi.depth === 0 && /[:：]$/.test(prevLi.text)) || (prevLi.depth === 1 && prevLi.kind === 'star'))) {
+                r.depth = 1; r.kind = 'star';
+            }
+            prevLi = r; continue;
+        }
+        if (prevLi && (prevLi.depth === 1 || /[:：]$/.test(prevLi.text)) && /^\d+(?:\.\d+)?%/.test(r.text)) {
+            r.type = 'li'; r.depth = 1; r.kind = 'bare'; prevLi = r;
+        }
     }
 
     // 丟掉 Changelog / 贊助 / 鳴謝 之類的段落
@@ -112,11 +142,20 @@ function tidy(lines) {
     return out;
 }
 
+// 第一個標題之前 = 卡片上的「小字介紹」；第一個標題起 = 點開後的「詳細內容」
+function splitIntro(lines) {
+    const i = lines.findIndex(l => l.type === 'h');
+    if (i === -1) return { intro: lines, body: lines };
+    return { intro: lines.slice(0, i), body: lines.slice(i) };
+}
+
 function linesToText(lines, max) {
     const parts = [];
     let len = 0;
     for (const ln of lines) {
-        const t = ln.type === 'h' ? `// ${ln.text}` : ln.type === 'li' ? `• ${ln.text}` : ln.text;
+        const t = ln.type === 'h' ? `// ${ln.text}`
+            : ln.type === 'li' ? `${ln.depth === 1 ? '◦' : '•'} ${ln.text}`
+            : ln.text;
         if (len + t.length > max) {
             if (!parts.length) parts.push(Array.from(t).slice(0, max).join('') + '...');
             else parts.push('...');
@@ -128,11 +167,24 @@ function linesToText(lines, max) {
     return parts.join('\n');
 }
 
-function summarizeLines(lines, max) {
-    const body = lines.filter(l => l.type !== 'h');
-    const plain = (body.length ? body : lines).map(l => l.text).join(' ').replace(/\s+/g, ' ').trim();
-    const chars = Array.from(plain);
-    return chars.length > max ? chars.slice(0, max).join('') + '...' : plain;
+// 卡片小字：回傳「每行一個字串」的陣列
+function introToLines(intro, body, max) {
+    let src = intro.filter(l => l.type !== 'h');
+    if (!src.length) src = body.filter(l => l.type !== 'h').slice(0, 2);
+    const out = [];
+    let len = 0;
+    for (const l of src) {
+        const t = l.text;
+        if (len + t.length > max) {
+            const room = max - len;
+            if (room > 20) out.push(Array.from(t).slice(0, room).join('') + '...');
+            else if (out.length) out[out.length - 1] += '...';
+            break;
+        }
+        out.push(t);
+        len += t.length;
+    }
+    return out;
 }
 
 function buildDescriptions(raw) {
@@ -150,12 +202,15 @@ function buildDescriptions(raw) {
     if (!zhOwn) zh = en;
     en = tidy(en); zh = tidy(zh);
 
-    const none = { en: 'NO_DESCRIPTION_AVAILABLE.', zh: '尚無說明。' };
+    const E = splitIntro(en), Z = splitIntro(zh);
+    const none = { en: ['NO_DESCRIPTION_AVAILABLE.'], zh: ['尚無說明。'] };
+    const introEn = introToLines(E.intro, E.body, LIMITS.en.summary);
+    const introZh = introToLines(Z.intro, Z.body, LIMITS.zh.summary);
     return {
-        sumEn: en.length ? summarizeLines(en, LIMITS.en.summary) : none.en,
-        sumZh: zh.length ? summarizeLines(zh, LIMITS.zh.summary) : none.zh,
-        fullEn: linesToText(en, LIMITS.en.full),
-        fullZh: linesToText(zh, LIMITS.zh.full),
+        introEn: introEn.length ? introEn : none.en,
+        introZh: introZh.length ? introZh : none.zh,
+        fullEn: linesToText(E.body, LIMITS.en.full),
+        fullZh: linesToText(Z.body, LIMITS.zh.full),
     };
 }
 
@@ -241,13 +296,14 @@ async function fetchAndGenerateCards() {
 
             const tagsJson = attr(JSON.stringify(tags));
             const versionsJson = attr(JSON.stringify(versions));
-            const searchIndex = attr(`${rawTitle} ${d.fullEn} ${d.fullZh} ${allTags.join(' ')}`.toLowerCase().replace(/\s+/g, ' '));
+            const searchIndex = attr(`${rawTitle} ${d.introEn.join(' ')} ${d.introZh.join(' ')} ${d.fullEn} ${d.fullZh} ${allTags.join(' ')}`.toLowerCase().replace(/\s+/g, ' '));
 
             const figure = imgUrl
                 ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300" referrerpolicy="no-referrer" loading="lazy">`
                 : `<div class="w-full h-full bg-black flex items-center justify-center text-[#3f3f46] font-mono text-xs">NO_IMAGE</div>`;
 
-            const pClass = 'text-xs text-[#717684] line-clamp-3 mb-4 leading-relaxed font-mono';
+            const pClass = 'text-xs text-[#717684] mb-4 leading-relaxed font-mono space-y-1.5';
+            const introHtml = arr => arr.map(t => `<span class="block">&gt; ${escapeHtml(t)}</span>`).join('');
 
             cardsHTML += `
             <article class="relative bg-[#090a0f] border border-dashed border-[#232732] flex flex-col opacity-90 hover:opacity-100 transition-opacity gsap-reveal group cursor-pointer"
@@ -278,8 +334,8 @@ async function fetchAndGenerateCards() {
                         <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="sub">SUB</span>: ${subs}</span>
                     </div>
 
-                    <p class="lang-en ${pClass}">&gt; ${escapeHtml(d.sumEn)}</p>
-                    <p class="lang-zh ${pClass}">&gt; ${escapeHtml(d.sumZh)}</p>
+                    <div class="lang-en ${pClass}">${introHtml(d.introEn)}</div>
+                    <div class="lang-zh ${pClass}">${introHtml(d.introZh)}</div>
 
                     <div class="mt-auto pt-3 border-t border-[#1d2027] text-[10px] text-[#717684] uppercase flex justify-between font-mono">
                         <span>${dateStr}</span>
