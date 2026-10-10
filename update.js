@@ -322,7 +322,7 @@ async function fetchAndGenerateCards() {
 
             const ts = Number(mod.time_updated) || 0;
             const dateStr = ts
-                ? new Date(ts * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).replace(/-/g, '.')
+                ? new Date(ts * ).toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).replace(/-/g, '.')
                 : 'UNKNOWN';
 
             const allTags = (mod.tags || []).map(t => t.tag);
