@@ -250,7 +250,7 @@ body:has(.sup-box.compact) footer { margin-top: calc(var(--gap-foot) + var(--sup
                      data-title="Green Hazard: Toxic Flora and Woodcutting《綠色殺機：毒草與伐木》"
                      data-date="2026.10.08"
                      data-fav="13"
-                     data-sub="32"
+                     data-sub="31"
                      data-img="https://images.steamusercontent.com/ugc/9973330483762156053/8DA985D6CBCD9C98936A8ACCC1DB867BEA80EBDF/"
                      data-url="https://steamcommunity.com/sharedfiles/filedetails/?id=3812133334"
                      data-tags="[&quot;Mod&quot;]"
@@ -270,7 +270,7 @@ body:has(.sup-box.compact) footer { margin-top: calc(var(--gap-foot) + var(--sup
 
                     <div class="flex flex-wrap gap-1.5 mb-3 font-mono">
                         <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="fav">FAV</span>: 13</span>
-                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="sub">SUB</span>: 32</span>
+                        <span class="text-[10px] bg-[#090a0f] text-[#a1a1aa] px-2 py-0.5 uppercase border border-[#1d2027]"><span data-i18n="sub">SUB</span>: 31</span>
                     </div>
 
                     <div class="lang-en text-xs text-[#717684] mb-4 leading-relaxed font-mono space-y-1.5"><span class="block">&gt; &quot;I sent a pawn to chop some wood for a bed, and the axe slipped, causing severe bleeding. Another got a concussion from a falling tree. Meanwhile, my grazing cow ate toxic flora and dropped dead.&quot;</span><span class="block">&gt; Make the wilderness dangerous again. Harvesting, grazing, and woodcutting now carry a very small, unpredictable risk of accidents. No warnings, just RimWorld.</span></div>
@@ -388,7 +388,7 @@ checkInAppBrowser();
       comm_name: 'YOUR NAME',
       comm_email: 'YOUR EMAIL',
       comm_msg: 'MESSAGE...',
-      comm_exec: 'Send Message'
+      comm_exec: 'SUBMIT'
     },
     zh: {
       iab: '[警告] 偵測到社群內建瀏覽器。為確保支付跳轉正常，請點選右上角改以外部瀏覽器開啟。',
@@ -440,7 +440,7 @@ checkInAppBrowser();
         clearInterval(el._i18nTimer); 
         if (isPh) el.placeholder = text; else el.textContent = text;
       }
-    }, 25);
+    }, 30);
   }
 
   let firstLoad = true;
@@ -472,7 +472,7 @@ checkInAppBrowser();
   firstLoad = false;
 })();
 
-try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true, smoothTouch: false }); window.__lenis = lenis; const raf = function (time) { lenis.raf(time); requestAnimationFrame(raf); }; requestAnimationFrame(raf); } } catch (e) {}
+try { if (window.Lenis) { const lenis = new Lenis({ duration: 5, smooth: true, smoothTouch: false }); window.__lenis = lenis; const raf = function (time) { lenis.raf(time); requestAnimationFrame(raf); }; requestAnimationFrame(raf); } } catch (e) {}
 
 (function () {
   const ok = [].slice.call(document.querySelectorAll('#support .support-link')).filter(function (a) {
@@ -584,7 +584,7 @@ try { if (window.Lenis) { const lenis = new Lenis({ duration: 1.2, smooth: true,
   let isResizing = false, resizeTimer = null;
   let expandedHeight = 0, compactHeight = 0;
   const SUP_COLLAPSE_AT = 80;                       
-  const SUP_ANIM_MOBILE = 1200, SUP_ANIM_DESKTOP = 260; 
+  const SUP_ANIM_MOBILE = 700, SUP_ANIM_DESKTOP = 300; 
 
   const CH = '!<>-_\\/[]{}=+*^?#01';
   function scramble(el, text) {
